@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Tableau AI Summarizer</title>
+  <!--
+    Loaded from the SAME repo (no CDN, no redirect, no CSP issues).
+    Download tableau.extensions.1.latest.min.js from:
+    https://raw.githubusercontent.com/tableau/extensions-api/v1.12.0/lib/tableau.extensions.1.latest.min.js
+    and place it next to this file in your GitHub Pages repo.
+  -->
+  <script src="./tableau.extensions.1.latest.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8f9fc;color:#1a1a2e;height:100vh;display:flex;flex-direction:column}
+    .header{background:linear-gradient(135deg,#1a1a2e,#0f3460);padding:12px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .header h1{font-size:.9rem;font-weight:700;color:#fff}
+    .header p{font-size:.7rem;color:#a0b0c8;margin-top:1px}
+    .main{flex:1;overflow-y:auto;padding:14px}
+    .status-bar{padding:8px 12px;border-radius:8px;font-size:.78rem;font-weight:500;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+    .status-bar.idle   {background:#f0f2f5;color:#5a6a8a}
+    .status-bar.loading{background:#eff3ff;color:#4361ee}
+    .status-bar.success{background:#e8f8f0;color:#1a8a5a}
+    .status-bar.error  {background:#fff0f0;color:#d64545}
+    .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+    .idle    .dot{background:#9aa5b8}
+    .loading .dot{background:#4361ee;animation:pulse 1s infinite}
+    .success .dot{background:#1a8a5a}
+    .error   .dot{background:#d64545}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .dash-card{background:#fff;border:1.5px solid #4361ee22;border-radius:10px;padding:14px;margin-bottom:14px;display:none}
+    .dash-card .label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#7a8aaa;margin-bottom:4px}
+    .dash-card .dash-name{font-size:1rem;font-weight:700;color:#1a1a2e;margin-bottom:2px}
+    .dash-card .wb-name{font-size:.78rem;color:#7a8aaa}
+    .auto-badge{display:inline-flex;align-items:center;gap:4px;background:#e8f8f0;color:#1a8a5a;border-radius:20px;padding:2px 8px;font-size:.68rem;font-weight:600;margin-top:6px}
+    .warn-badge{display:inline-flex;align-items:center;gap:4px;background:#fff8e1;color:#b08000;border-radius:20px;padding:2px 8px;font-size:.68rem;font-weight:600;margin-top:6px}
+    .analyze-btn{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#4361ee,#3a56d4);color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .2s;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px}
+    .analyze-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(67,97,238,.4)}
+    .analyze-btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+    .progress{background:#fff;border:1px solid #eef0f6;border-radius:10px;padding:14px;margin-bottom:12px;text-align:center;display:none}
+    .pmsg{font-size:.82rem;font-weight:600;color:#1a1a2e;margin-bottom:4px}
+    .psub{font-size:.72rem;color:#9aa5b8}
+    .elapsed{font-size:.7rem;color:#4361ee;margin-top:3px}
+    .tabs{display:flex;border-bottom:2px solid #f0f2f5;margin-bottom:10px;gap:2px}
+    .tab{padding:7px 12px;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9aa5b8;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px}
+    .tab.on{color:#4361ee;border-bottom-color:#4361ee}
+    .tabp{display:none}
+    .tabp.on{display:block}
+    .sbody{font-size:.8rem;line-height:1.7;color:#2d3a52}
+    .sbody h2{font-size:.8rem;font-weight:700;color:#4361ee;margin:12px 0 4px;padding-bottom:3px;border-bottom:1px solid #eff3ff}
+    .sbody h2:first-child{margin-top:0}
+    .sbody p{margin-bottom:7px}
+    .sbody ul{margin:4px 0 7px 14px}
+    .sbody li{margin-bottom:2px}
+    .sbody strong{color:#1a1a2e}
+    .gbody{font-size:.8rem}
+    .gitem{padding:9px 11px;border-radius:8px;background:#f8f9fc;border-left:3px solid #4361ee;margin-bottom:8px}
+    .gterm{font-size:.82rem;font-weight:700;color:#1a1a2e;margin-bottom:2px}
+    .glabel{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9aa5b8;margin-bottom:1px}
+    .gdef{font-size:.76rem;color:#2d3a52;line-height:1.5;margin-bottom:2px}
+    .gctx{font-size:.72rem;color:#7a8aaa;line-height:1.4;font-style:italic}
+    .footer{padding:8px 16px;border-top:1px solid #eef0f6;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:#fff}
+    .footer span{font-size:.68rem;color:#9aa5b8}
+    .rbtn{padding:4px 10px;background:#eff3ff;color:#4361ee;border:none;border-radius:6px;font-size:.72rem;font-weight:600;cursor:pointer}
+    .rbtn:hover{background:#dde6ff}
+    .export-btn{padding:4px 10px;background:#4361ee;color:#fff;border:none;border-radius:6px;font-size:.72rem;font-weight:600;cursor:pointer}
+    .export-btn:hover{background:#3a56d4}
+    .export-btn:disabled{opacity:.55;cursor:not-allowed}
+    .cbadge{padding:3px 8px;background:#fff8e1;color:#b08000;border-radius:20px;font-size:.68rem;font-weight:600}
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+    <rect width="36" height="36" rx="8" fill="#4361ee" fill-opacity=".2"/>
+    <rect x="7" y="7" width="10" height="10" rx="2" fill="#7c9eff"/>
+    <rect x="19" y="7" width="10" height="6" rx="2" fill="#4361ee"/>
+    <rect x="7" y="19" width="10" height="10" rx="2" fill="#4361ee"/>
+    <rect x="19" y="15" width="10" height="12" rx="2" fill="#7c9eff"/>
+  </svg>
+  <div><h1>Dashboard AI Summarizer</h1><p>Powered by Claude AI</p></div>
+</div>
+
+<div class="main">
+  <div class="status-bar idle" id="statusBar">
+    <div class="dot"></div><span id="statusText">Initializing…</span>
+  </div>
+
+  <div class="dash-card" id="dashCard">
+    <div class="label">Currently viewing</div>
+    <div class="dash-name" id="dashName">—</div>
+    <div class="wb-name"   id="wbName">—</div>
+    <div id="badge"></div>
+  </div>
+
+  <button class="analyze-btn" id="analyzeBtn" disabled onclick="analyze(false)">
+    ✨ Analyze with AI
+  </button>
+
+  <div class="progress" id="progressBox">
+    <div class="pmsg" id="pmsg">Starting…</div>
+    <div class="psub" id="psub"></div>
+    <div class="elapsed" id="elapsed"></div>
+  </div>
+
+  <div id="results" style="display:none">
+    <div class="tabs">
+      <button class="tab on" onclick="switchTab('sum',this)">📋 Summary</button>
+      <button class="tab"    onclick="switchTab('glos',this)">📖 Glossary</button>
+    </div>
+    <div class="tabp on" id="tabSum" ><div class="sbody" id="sumBody"></div></div>
+    <div class="tabp"    id="tabGlos"><div class="gbody" id="glosBody"></div></div>
+  </div>
+</div>
+
+<div class="footer">
+  <div style="display:flex;gap:6px;align-items:center">
+    <span id="tsText"></span><span id="cacheLabel"></span>
+  </div>
+  <div style="display:flex;gap:6px">
+    <button class="rbtn"       id="refreshBtn" style="display:none" onclick="analyze(true)">🔄 Refresh</button>
+    <button class="export-btn" id="exportBtn"  style="display:none" onclick="doExport()">📄 Export</button>
+  </div>
+</div>
+
+<script>
+  // ── GAS backend URL — update if you redeploy ─────────────────
+  var GAS_URL = 'https://script.google.com/a/macros/birdeye.com/s/AKfycbwlTtZ-RZYbNqbSrnvbHL62_lIOk1q2YYayMc8ijhLxTlyv4sfh2vx6nbC7cH35y2TjVQ/exec';
+
+  // ── State ────────────────────────────────────────────────────
+  var dashboardName = '';
+  var workbookName  = '';
+  var msgTimer      = null;
+  var elapsedTimer  = null;
+  var elapsedSec    = 0;
+  var exportData    = {};
+
+  var MSGS = [
+    'Claude is reading the dashboard… 🔍',
+    'Cross-referencing image with CSV data… 📊',
+    'Counting bars, reading labels… 🧐',
+    'Writing your summary… ✨',
+    'Almost done — generating glossary… 📖'
+  ];
+
+  // ── Init ─────────────────────────────────────────────────────
+  // The Tableau Extensions API JS is loaded from ./tableau.extensions.1.latest.min.js
+  // (same repo, no CDN, no redirect, no CSP issues).
+  // initializeAsync() now communicates directly with the Tableau host
+  // because there is no intermediate iframe wrapper (unlike GAS HtmlService).
+  (function init() {
+    if (typeof tableau === 'undefined' || !tableau.extensions) {
+      setStatus('error', 'Tableau Extensions API not found. Make sure tableau.extensions.1.latest.min.js is in the same folder as this file.');
+      return;
+    }
+
+    setStatus('loading', 'Connecting to Tableau…');
+
+    var timeout = new Promise(function(_, reject) {
+      setTimeout(function() { reject(new Error('Timed out — is this page open inside Tableau?')); }, 8000);
+    });
+
+    Promise.race([tableau.extensions.initializeAsync(), timeout])
+      .then(function() {
+        var dash = tableau.extensions.dashboardContent.dashboard;
+        dashboardName = dash.name;
+        workbookName  = dash.workbook ? dash.workbook.name : '';
+
+        document.getElementById('dashName').textContent   = dashboardName;
+        document.getElementById('wbName').textContent     = workbookName || 'Unknown Workbook';
+        document.getElementById('badge').innerHTML        = '<div class="auto-badge">✅ Auto-detected from Tableau</div>';
+        document.getElementById('dashCard').style.display = 'block';
+        document.getElementById('analyzeBtn').disabled    = false;
+        setStatus('success', 'Ready — click Analyze with AI');
+      })
+      .catch(function(err) {
+        setStatus('error', err.message || 'Tableau init failed');
+        document.getElementById('badge').innerHTML        = '<div class="warn-badge">⚠️ Could not auto-detect dashboard</div>';
+        document.getElementById('dashCard').style.display = 'block';
+      });
+  })();
+
+  // ── Analyze ──────────────────────────────────────────────────
+  // Single fetch call to ?action=analyze — GAS resolves the view UUID,
+  // fetches image+CSV from Tableau, calls Claude, and returns the summary.
+  // GAS allows CORS for GET requests on deployed web apps (anyone access).
+  function analyze(forceRefresh) {
+    if (!dashboardName) { setStatus('error', 'No dashboard detected.'); return; }
+
+    document.getElementById('analyzeBtn').disabled      = true;
+    document.getElementById('results').style.display    = 'none';
+    document.getElementById('refreshBtn').style.display = 'none';
+    document.getElementById('exportBtn').style.display  = 'none';
+
+    showProgress('Fetching dashboard…', 'Resolving view and retrieving data from Tableau');
+    setStatus('loading', 'Analyzing…');
+
+    var url = GAS_URL
+      + '?action=analyze'
+      + '&viewName='     + encodeURIComponent(dashboardName)
+      + '&forceRefresh=' + (forceRefresh ? '1' : '0');
+
+    fetch(url, { redirect: 'follow' })
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function(data) {
+        hideProgress();
+        if (data.error) throw new Error(data.error);
+        showResults(data);
+      })
+      .catch(function(err) {
+        hideProgress();
+        setStatus('error', err.message || 'Analysis failed');
+        document.getElementById('analyzeBtn').disabled = false;
+      });
+  }
+
+  // ── Export ───────────────────────────────────────────────────
+  function doExport() {
+    var btn = document.getElementById('exportBtn');
+    btn.disabled = true; btn.textContent = '⏳';
+
+    var url = GAS_URL
+      + '?action=export'
+      + '&viewName='    + encodeURIComponent(dashboardName)
+      + '&summary='     + encodeURIComponent(exportData.summary)
+      + '&generatedAt=' + encodeURIComponent(exportData.generatedAt);
+
+    fetch(url, { redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        btn.disabled = false; btn.textContent = '📄 Export';
+        if (d && d.url) window.open(d.url, '_blank');
+      })
+      .catch(function() { btn.disabled = false; btn.textContent = '📄 Export'; });
+  }
+
+  // ── Progress ─────────────────────────────────────────────────
+  function showProgress(msg, sub) {
+    document.getElementById('progressBox').style.display = 'block';
+    document.getElementById('pmsg').textContent = msg;
+    document.getElementById('psub').textContent = sub || '';
+    clearInterval(msgTimer);
+    elapsedSec = 0;
+    clearInterval(elapsedTimer);
+    elapsedTimer = setInterval(function() {
+      document.getElementById('elapsed').textContent = (++elapsedSec) + 's elapsed';
+    }, 1000);
+    var i = 0, pool = MSGS.slice().sort(function(){ return Math.random()-.5; });
+    msgTimer = setInterval(function() {
+      document.getElementById('pmsg').textContent = pool[i++ % pool.length];
+    }, 3000);
+  }
+
+  function hideProgress() {
+    clearInterval(msgTimer);
+    clearInterval(elapsedTimer);
+    document.getElementById('progressBox').style.display = 'none';
+    document.getElementById('elapsed').textContent = '';
+  }
+
+  // ── Results ──────────────────────────────────────────────────
+  function showResults(data) {
+    var parts = splitResp(data.summary);
+    document.getElementById('sumBody').innerHTML  = mdToHtml(parts.summary);
+    document.getElementById('glosBody').innerHTML = parseGlos(parts.glossary);
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('analyzeBtn').disabled   = false;
+
+    var ts = document.getElementById('tsText');
+    if (ts) ts.textContent = data.generatedAt
+      ? '🕐 ' + data.generatedAt + (data.fromCache ? ' (cached)' : ' — just now') : '';
+
+    var cl = document.getElementById('cacheLabel');
+    if (cl) cl.innerHTML = data.fromCache ? '<span class="cbadge">⚡ Cached</span>' : '';
+
+    document.getElementById('refreshBtn').style.display = 'inline-block';
+    document.getElementById('exportBtn').style.display  = 'inline-block';
+    exportData = { summary: data.summary, generatedAt: data.generatedAt || '' };
+    setStatus('success', data.fromCache ? 'Loaded from cache ⚡' : 'Analysis complete ✓');
+
+    document.querySelectorAll('.tab') .forEach(function(t,i){ t.classList.toggle('on',i===0); });
+    document.querySelectorAll('.tabp').forEach(function(p,i){ p.classList.toggle('on',i===0); });
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────
+  function setStatus(state, msg) {
+    var el = document.getElementById('statusBar');
+    el.className = 'status-bar ' + state;
+    el.innerHTML = '<div class="dot"></div><span>' + msg + '</span>';
+  }
+
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab') .forEach(function(t){ t.classList.remove('on'); });
+    document.querySelectorAll('.tabp').forEach(function(p){ p.classList.remove('on'); });
+    btn.classList.add('on');
+    document.getElementById(name === 'sum' ? 'tabSum' : 'tabGlos').classList.add('on');
+  }
+
+  function splitResp(md) {
+    var i = md.search(/^## 10\. Business Glossary/m);
+    return i === -1 ? { summary: md, glossary: '' }
+                    : { summary: md.slice(0,i).trim(), glossary: md.slice(i).trim() };
+  }
+
+  function parseGlos(md) {
+    if (!md) return '<p style="color:#9aa5b8;padding:10px">No glossary terms found.</p>';
+    var items = md.split(/^### /m).filter(function(s){ return s.trim() && !/^## 10/.test(s); });
+    if (!items.length) return '<p style="color:#9aa5b8;padding:10px">No glossary terms found.</p>';
+    return items.map(function(item) {
+      var lines = item.trim().split('\n');
+      var term  = lines[0].trim();
+      var dLine = lines.find(function(l){ return /^\*\*Definition:\*\*/.test(l); });
+      var cLine = lines.find(function(l){ return /^\*\*Context:\*\*/.test(l); });
+      var def   = dLine ? dLine.replace('**Definition:**','').trim() : '';
+      var ctx   = cLine ? cLine.replace('**Context:**','').trim() : '';
+      return '<div class="gitem"><div class="gterm">'+term+'</div>'+
+        (def?'<div class="glabel">Definition</div><div class="gdef">'+def+'</div>':'')+
+        (ctx?'<div class="glabel">In this dashboard</div><div class="gctx">'+ctx+'</div>':'')+
+        '</div>';
+    }).join('');
+  }
+
+  function mdToHtml(md) {
+    return md
+      .replace(/^## (.+)$/gm,   '<h2>$1</h2>')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/^- (.+)$/gm,    '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/g, function(m){ return '<ul>'+m+'</ul>'; })
+      .replace(/\n{2,}/g, '</p><p>')
+      .replace(/(<\/h2>)\n/g, '$1')
+      .replace(/\n/g, '<br>')
+      .replace(/(^|<\/h2>|<\/ul>)([^<\n][^<]*)/g, '$1<p>$2</p>');
+  }
+</script>
+</body>
+</html>
