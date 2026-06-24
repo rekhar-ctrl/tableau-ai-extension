@@ -127,7 +127,7 @@
 
 <script>
   // ── GAS backend URL — update if you redeploy ─────────────────
-  var GAS_URL = 'https://script.google.com/macros/s/AKfycbwlTtZ-RZYbNqbSrnvbHL62_lIOk1q2YYayMc8ijhLxTlyv4sfh2vx6nbC7cH35y2TjVQ/exec';
+  var GAS_URL = 'https://script.google.com/a/macros/birdeye.com/s/AKfycbwlTtZ-RZYbNqbSrnvbHL62_lIOk1q2YYayMc8ijhLxTlyv4sfh2vx6nbC7cH35y2TjVQ/exec';
 
   // ── State ────────────────────────────────────────────────────
   var dashboardName = '';
@@ -224,19 +224,29 @@
     var btn = document.getElementById('exportBtn');
     btn.disabled = true; btn.textContent = '⏳';
 
-    var url = GAS_URL
-      + '?action=export'
-      + '&viewName='    + encodeURIComponent(dashboardName)
-      + '&summary='     + encodeURIComponent(exportData.summary)
-      + '&generatedAt=' + encodeURIComponent(exportData.generatedAt);
-
-    fetch(url, { redirect: 'follow' })
+    // POST avoids URL length limits (summary can be 10KB+).
+    // text/plain Content-Type skips CORS preflight on GAS.
+    fetch(GAS_URL, {
+      method:   'POST',
+      redirect: 'follow',
+      headers:  { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action:      'export',
+        viewName:    dashboardName,
+        summary:     exportData.summary,
+        generatedAt: exportData.generatedAt
+      })
+    })
       .then(function(r) { return r.json(); })
       .then(function(d) {
         btn.disabled = false; btn.textContent = '📄 Export';
         if (d && d.url) window.open(d.url, '_blank');
+        else alert('Export failed: ' + (d && d.error ? d.error : 'unknown error'));
       })
-      .catch(function() { btn.disabled = false; btn.textContent = '📄 Export'; });
+      .catch(function(err) {
+        btn.disabled = false; btn.textContent = '📄 Export';
+        alert('Export error: ' + err.message);
+      });
   }
 
   // ── Progress ─────────────────────────────────────────────────
@@ -302,14 +312,15 @@
   }
 
   function splitResp(md) {
-    var i = md.search(/^## 10\. Business Glossary/m);
+    // Match "## N. Business Glossary" with any section number
+    var i = md.search(/^## \d+\.? Business Glossary/m);
     return i === -1 ? { summary: md, glossary: '' }
                     : { summary: md.slice(0,i).trim(), glossary: md.slice(i).trim() };
   }
 
   function parseGlos(md) {
     if (!md) return '<p style="color:#9aa5b8;padding:10px">No glossary terms found.</p>';
-    var items = md.split(/^### /m).filter(function(s){ return s.trim() && !/^## 10/.test(s); });
+    var items = md.split(/^### /m).filter(function(s){ return s.trim() && !/^## \d+/.test(s); });
     if (!items.length) return '<p style="color:#9aa5b8;padding:10px">No glossary terms found.</p>';
     return items.map(function(item) {
       var lines = item.trim().split('\n');
