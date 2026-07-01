@@ -276,6 +276,8 @@
   // ── Results ──────────────────────────────────────────────────
   function showResults(data) {
     var parts = splitResp(data.summary);
+    // Safety net: hide any section Claude included but couldn't answer
+    parts.summary = hideEmptySections(parts.summary);
     document.getElementById('sumBody').innerHTML  = mdToHtml(parts.summary);
     document.getElementById('glosBody').innerHTML = parseGlos(parts.glossary);
     document.getElementById('results').style.display = 'block';
@@ -311,9 +313,27 @@
     document.getElementById(name === 'sum' ? 'tabSum' : 'tabGlos').classList.add('on');
   }
 
+  // Strips sections whose body contains "data not available" language.
+  // Primary fix is in the prompt (Code.gs) — this is a frontend safety net.
+  function hideEmptySections(md) {
+    var sections = md.split(/(?=^## \d+)/m);
+    return sections.filter(function(section) {
+      var lower = section.toLowerCase();
+      return !(
+        lower.indexOf('not contain')            !== -1 ||
+        lower.indexOf('cannot be populated')    !== -1 ||
+        lower.indexOf('not available')          !== -1 ||
+        lower.indexOf('does not include')       !== -1 ||
+        lower.indexOf('required to complete')   !== -1 ||
+        lower.indexOf('not present in this')    !== -1 ||
+        lower.indexOf('underlying csv does not') !== -1
+      );
+    }).join('');
+  }
+
   function splitResp(md) {
     // Match "## N. Business Glossary" with any section number
-    var i = md.search(/^## \d+\.? Business Glossary/m);
+    var i = md.search(/^## \d+\.?\s*Business Glossary/m);
     return i === -1 ? { summary: md, glossary: '' }
                     : { summary: md.slice(0,i).trim(), glossary: md.slice(i).trim() };
   }
