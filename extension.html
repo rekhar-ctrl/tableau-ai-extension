@@ -278,6 +278,7 @@
     var parts = splitResp(data.summary);
     // Safety net: hide any section Claude included but couldn't answer
     parts.summary = hideEmptySections(parts.summary);
+    parts.summary = renumberSections(parts.summary);
     document.getElementById('sumBody').innerHTML  = mdToHtml(parts.summary);
     document.getElementById('glosBody').innerHTML = parseGlos(parts.glossary);
     document.getElementById('results').style.display = 'block';
@@ -329,6 +330,16 @@
         lower.indexOf('underlying csv does not') !== -1
       );
     }).join('');
+  }
+
+  // Renumbers ## N. Section headings sequentially after hidden sections are removed
+  // so output reads 1, 2, 3, 4... instead of 1, 5, 6, 7...
+  function renumberSections(md) {
+    var counter = 0;
+    return md.replace(/^## \d+\.?\s*/mg, function() {
+      counter++;
+      return '## ' + counter + '. ';
+    });
   }
 
   function splitResp(md) {
