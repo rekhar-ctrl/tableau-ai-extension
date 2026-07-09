@@ -134,6 +134,10 @@
     .tech-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
     .tech-name{font-size:.8rem;font-weight:700;color:#1a1a2e;margin-bottom:2px}
     .tech-desc{font-size:.72rem;color:#6b7280;line-height:1.4}
+
+    /* ── Footer utility buttons ── */
+    .footer-icon-btn{padding:3px 8px;background:#f0f2f5;color:#5a6a8a;border:1px solid #e2e8f0;border-radius:6px;font-size:.68rem;font-weight:600;cursor:pointer;white-space:nowrap}
+    .footer-icon-btn:hover{background:#e8edff;color:#4361ee;border-color:#c7d2fe}
   </style>
 </head>
 <body>
@@ -150,12 +154,7 @@
     <h1>Dashboard AI Summarizer</h1>
     <p>Powered by Claude AI</p>
   </div>
-  <div style="display:flex;gap:5px;align-items:center">
-    <!-- Tech stack info button -->
-    <button class="admin-btn" id="techBtn" onclick="showTechPanel()" title="Technology Stack" style="font-size:.7rem;font-weight:700;width:auto;padding:0 7px">ℹ️</button>
-    <!-- Admin button -->
-    <button class="admin-btn" id="adminBtn" onclick="showAdminPanel()" title="Analytics & Cost">⚙️</button>
-  </div>
+
 </div>
 
 <div class="main">
@@ -202,7 +201,9 @@
 
 <div class="footer">
   <div style="display:flex;gap:5px;align-items:center">
-    <span id="tsText"></span><span id="cacheLabel"></span>
+    <button class="footer-icon-btn" onclick="showTechPanel()" title="Technology Stack">ℹ️ Tech</button>
+    <button class="footer-icon-btn" onclick="showAdminPanel()" title="Analytics & Cost">⚙️ Admin</button>
+    <span id="tsText" style="margin-left:2px"></span><span id="cacheLabel"></span>
   </div>
   <div style="display:flex;gap:5px">
     <button class="rbtn"       id="refreshBtn" style="display:none" onclick="analyze(true)">🔄 Refresh</button>
@@ -745,7 +746,7 @@
         '</div>' +
         '<div class="stat-card amber">' +
           '<div class="stat-val amber">' + fmt(totalCost) + '</div>' +
-          '<div class="stat-label">Total Spend</div>' +
+          '<div class="stat-label">Anthropic API Spend</div>' +
         '</div>' +
         '<div class="stat-card green">' +
           '<div class="stat-val green">' + fmt(totalSaved) + '</div>' +
@@ -765,12 +766,17 @@
         '<h3>Configuration</h3>' +
         '<div class="config-row"><span class="config-key">Model</span><span class="config-val">' + (s.config && s.config.model || 'claude-sonnet-4-6') + '</span></div>' +
         '<div class="config-row"><span class="config-key">Cache TTL</span><span class="config-val">' + ((s.config && s.config.summaryTtlHours) || 12) + 'h — summaries reused for 12 hours</span></div>' +
-        '<div class="config-row"><span class="config-key">Cost per fresh click</span><span class="config-val">' + fmt(avgCost) + ' avg</span></div>' +
-        '<div class="config-row"><span class="config-key">Cost per cached click</span><span class="config-val">$0.0000 (free)</span></div>' +
+        '<div class="config-row"><span class="config-key">Anthropic cost / fresh click</span><span class="config-val">' + fmt(avgCost) + ' avg</span></div>' +
+        '<div class="config-row"><span class="config-key">Anthropic cost / cached click</span><span class="config-val">$0.0000 (served from cache)</span></div>' +
         (s.lastCall ? '<div class="config-row"><span class="config-key">Last analysis</span><span class="config-val" style="font-family:inherit">' + s.lastCall.slice(0,16).replace('T',' ') + ' UTC</span></div>' : '') +
         (s.lastView ? '<div class="config-row"><span class="config-key">Last dashboard</span><span class="config-val" style="font-family:inherit;font-size:.72rem">' + s.lastView + '</span></div>' : '') +
       '</div>' +
 
+
+      '<div style="font-size:.68rem;color:#9aa5b8;margin-top:10px;padding:8px;background:#f8f9fc;border-radius:6px;line-height:1.5">' +
+      '💡 Costs shown are <strong style=\"color:#374151\">Anthropic API charges only</strong> (claude-sonnet-4-6). ' +
+      'Tableau Server, GitHub Pages and Google Apps Script run on existing licenses or free tiers.' +
+      '</div>' +
       '<button class="clear-btn" onclick="clearAdminStats()">🗑 Reset All Stats</button>';
 
     document.getElementById('adminBody').innerHTML = html;
