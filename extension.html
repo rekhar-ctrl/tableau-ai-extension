@@ -707,18 +707,30 @@
   }
 
   function renderAdminPanel(s) {
-    var totalCalls  = s.totalCalls     || 0;
-    var totalHits   = s.totalCacheHits || 0;
-    var totalClicks = totalCalls + totalHits;  // every Analyze click = API call OR cache hit
+    var totalClicks = s.totalClicks    || ((s.totalCalls || 0) + (s.totalCacheHits || 0));
     var hitRate     = s.cacheHitRate   || 0;
     var totalCost   = s.totalCost      || 0;
     var totalSaved  = s.totalSaved     || 0;
     var avgCost     = s.avgCostPerCall || 0;
+    var minsSaved   = s.totalMinsSaved || (totalClicks * 15);
+    var hrsSaved    = Math.floor(minsSaved / 60);
+    var remMins     = minsSaved % 60;
+    var timeSaved   = hrsSaved > 0 ? hrsSaved + 'h ' + remMins + 'm' : minsSaved + ' min';
 
     var fmt    = function(n) { return n < 0.0001 ? '<$0.0001' : '$' + n.toFixed(4); };
     var fmtPct = function(n) { return n + '%'; };
 
-    // Monthly rows (last 3 months)
+    // ── Per-dashboard rows (sorted by clicks) ──
+    var dashRows = (s.dashboards || []).slice(0, 8).map(function(d) {
+      return '<tr>' +
+        '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + d.name + '">' + d.name + '</td>' +
+        '<td style="text-align:center">' + d.clicks + '</td>' +
+        '<td class="hit" style="text-align:center">' + d.hitRate + '%</td>' +
+        '<td class="cost" style="text-align:right">' + fmt(d.cost) + '</td>' +
+        '</tr>';
+    }).join('') || '<tr><td colspan="4" style="color:#9aa5b8;text-align:center;padding:8px">No data yet — click Analyze on any dashboard</td></tr>';
+
+    // ── Monthly rows (last 3 months) ──
     var monthKeys = Object.keys(s.monthly || {}).sort().slice(-3).reverse();
     var monthRows = monthKeys.map(function(m) {
       var mo     = s.monthly[m];
@@ -728,13 +740,14 @@
       var rate   = clicks > 0 ? Math.round(hits / clicks * 100) : 0;
       return '<tr>' +
         '<td>' + m + '</td>' +
-        '<td>' + clicks + '</td>' +
-        '<td class="hit">' + fmtPct(rate) + '</td>' +
-        '<td class="cost">' + fmt(mo.cost || 0) + '</td>' +
+        '<td style="text-align:center">' + clicks + '</td>' +
+        '<td class="hit" style="text-align:center">' + rate + '%</td>' +
+        '<td class="cost" style="text-align:right">' + fmt(mo.cost || 0) + '</td>' +
         '</tr>';
     }).join('') || '<tr><td colspan="4" style="color:#9aa5b8;text-align:center">No data yet</td></tr>';
 
     var html =
+      // ── 4 stat cards ──
       '<div class="stat-grid">' +
         '<div class="stat-card">' +
           '<div class="stat-val">' + totalClicks + '</div>' +
@@ -749,19 +762,46 @@
           '<div class="stat-label">Anthropic API Spend</div>' +
         '</div>' +
         '<div class="stat-card green">' +
-          '<div class="stat-val green">' + fmt(totalSaved) + '</div>' +
-          '<div class="stat-label">Saved by Cache</div>' +
+          '<div class="stat-val green">' + timeSaved + '</div>' +
+          '<div class="stat-label">Est. Time Saved</div>' +
+        '</div>' +
+        '<div class="stat-card">' +
+          '<div class="stat-val">' + fmt(avgCost) + '</div>' +
+          '<div class="stat-label">Cost per Fresh Click</div>' +
+        '</div>' +
+        '<div class="stat-card green">' +
+          '<div class="stat-val green">$0.0000</div>' +
+          '<div class="stat-label">Cost per Cached Click</div>' +
         '</div>' +
       '</div>' +
 
+      // ── Time saved explanation ──
+      '<div style="background:#f0fdf4;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:.72rem;color:#166534;line-height:1.8">' +
+        '<div style="font-weight:700;margin-bottom:4px;font-size:.75rem">ℹ️ How these numbers are calculated</div>' +
+        '<div>⏱ <strong>Est. Time Saved (' + timeSaved + ')</strong> — assumes each AI analysis replaces ~15 min of manual dashboard review. Formula: ' + totalClicks + ' clicks × 15 min = ' + minsSaved + ' min total.</div>' +
+        '<div>💰 <strong>Cost per Fresh Click (' + fmt(avgCost) + ')</strong> — actual Anthropic API charge per summary generated, based on token usage (input + output). Averaged across all ' + (s.totalCalls || 0) + ' fresh analyses.</div>' +
+        '<div>⚡ <strong>Cost per Cached Click ($0.0000)</strong> — when the same dashboard + filter state was already analyzed within 12 hours, the stored result is returned instantly at zero API cost.</div>' +
+      '</div>' +
+
+      // ── Per-dashboard breakdown ──
+      '<div class="admin-section">' +
+        '<h3>Dashboard Usage</h3>' +
+        '<table class="admin-table">' +
+          '<thead><tr><th>Dashboard</th><th style="text-align:center">Clicks</th><th style="text-align:center">Cache %</th><th style="text-align:right">Cost</th></tr></thead>' +
+          '<tbody>' + dashRows + '</tbody>' +
+        '</table>' +
+      '</div>' +
+
+      // ── Monthly breakdown ──
       '<div class="admin-section">' +
         '<h3>Monthly Breakdown</h3>' +
         '<table class="admin-table">' +
-          '<thead><tr><th>Month</th><th>Clicks</th><th>Cache Rate</th><th>Cost</th></tr></thead>' +
+          '<thead><tr><th>Month</th><th style="text-align:center">Clicks</th><th style="text-align:center">Cache %</th><th style="text-align:right">Cost</th></tr></thead>' +
           '<tbody>' + monthRows + '</tbody>' +
         '</table>' +
       '</div>' +
 
+      // ── Configuration ──
       '<div class="admin-section">' +
         '<h3>Configuration</h3>' +
         '<div class="config-row"><span class="config-key">Model</span><span class="config-val">' + (s.config && s.config.model || 'claude-sonnet-4-6') + '</span></div>' +
