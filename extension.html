@@ -329,19 +329,30 @@
     return { main: md.slice(0, idx).trim(), perChart: md.slice(idx).trim() };
   }
 
-  // ── REQ 3: Compute current filter state as a fingerprint + description ──
+  // ── Compute filter state fingerprint + description ──────────────────────────
+  // Captures BOTH dimension filters AND Tableau Parameters (date pickers, dropdowns).
+  // Parameters are a separate event type — they are NOT returned by getFiltersAsync().
   function getFilterInfo(callback) {
     try {
       var dashboard  = tableau.extensions.dashboardContent.dashboard;
-      var worksheets = dashboard.worksheets;
-      if (!worksheets || worksheets.length === 0) {
+      var worksheets = dashboard.worksheets || [];
+      if (worksheets.length === 0) {
         callback({ fingerprint: 'default', description: '' });
         return;
       }
-      Promise.all(
-        worksheets.map(function(ws) { return ws.getFiltersAsync().catch(function() { return []; }); })
-      ).then(function(allFilters) {
+
+      // Collect filters from all worksheets + parameters from first worksheet
+      var filterPromises = worksheets.map(function(ws) {
+        return ws.getFiltersAsync().catch(function() { return []; });
+      });
+      var paramPromise = worksheets[0].getParametersAsync().catch(function() { return []; });
+
+      Promise.all(filterPromises.concat([paramPromise])).then(function(results) {
+        var params     = results[results.length - 1];          // last = parameters
+        var allFilters = results.slice(0, results.length - 1); // rest = filters
         var parts = [], descParts = [];
+
+        // ── Dimension filters ──────────────────────────────────
         allFilters.forEach(function(filters) {
           filters.forEach(function(f) {
             try {
@@ -361,6 +372,18 @@
             } catch(e) {}
           });
         });
+
+        // ── Tableau Parameters (date pickers, dropdowns, etc.) ─
+        params.forEach(function(p) {
+          try {
+            if (p.currentValue && p.currentValue.formattedValue) {
+              var v = p.currentValue.formattedValue;
+              parts.push(p.name + '=' + v);
+              descParts.push(p.name + ': ' + v);
+            }
+          } catch(e) {}
+        });
+
         var fingerprint = parts.length > 0 ? hashStr(parts.sort().join('&')) : 'default';
         var description = descParts.join(' | ');
         callback({ fingerprint: fingerprint, description: description });
@@ -413,19 +436,34 @@
     } catch(e) { callback(''); }
   }
 
-  // ── REQ 3: Register filter change listeners on all worksheets ──
+  // ── Register listeners for BOTH filter and parameter changes ────────────
+  // Tableau Parameters (date pickers, dropdowns) fire ParameterChanged,
+  // NOT FilterChanged — both must be monitored for complete filter awareness.
   function registerFilterListeners() {
     try {
       var dashboard  = tableau.extensions.dashboardContent.dashboard;
-      var worksheets = dashboard.worksheets;
-      if (!worksheets) return;
+      var worksheets = dashboard.worksheets || [];
+
       worksheets.forEach(function(ws) {
+        // Dimension / measure filters
         try {
           ws.addEventListener(tableau.TableauEventType.FilterChanged, function() {
             filterChanged = true;
             document.getElementById('filterBanner').classList.add('show');
           });
         } catch(e) {}
+
+        // Tableau Parameters (e.g. Start Date / End Date pickers)
+        ws.getParametersAsync().then(function(params) {
+          params.forEach(function(param) {
+            try {
+              param.addEventListener(tableau.TableauEventType.ParameterChanged, function() {
+                filterChanged = true;
+                document.getElementById('filterBanner').classList.add('show');
+              });
+            } catch(e) {}
+          });
+        }).catch(function() {});
       });
     } catch(e) {}
   }
