@@ -127,6 +127,13 @@
     .clear-btn{width:100%;padding:8px;background:#fff5f5;color:#d64545;border:1px solid #fecaca;border-radius:7px;font-size:.75rem;font-weight:600;cursor:pointer;margin-top:10px}
     .clear-btn:hover{background:#fee2e2}
     .admin-loading{text-align:center;color:#9aa5b8;font-size:.8rem;padding:20px}
+
+    /* ── Tech stack modal ── */
+    .tech-block{display:flex;flex-direction:column;gap:0}
+    .tech-item{display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-bottom:1px solid #f0f2f5}
+    .tech-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+    .tech-name{font-size:.8rem;font-weight:700;color:#1a1a2e;margin-bottom:2px}
+    .tech-desc{font-size:.72rem;color:#6b7280;line-height:1.4}
   </style>
 </head>
 <body>
@@ -143,8 +150,12 @@
     <h1>Dashboard AI Summarizer</h1>
     <p>Powered by Claude AI</p>
   </div>
-  <!-- REQ 4: Admin button -->
-  <button class="admin-btn" id="adminBtn" onclick="showAdminPanel()" title="Admin / Cost Analytics">⚙️</button>
+  <div style="display:flex;gap:5px;align-items:center">
+    <!-- Tech stack info button -->
+    <button class="admin-btn" id="techBtn" onclick="showTechPanel()" title="Technology Stack" style="font-size:.7rem;font-weight:700;width:auto;padding:0 7px">ℹ️</button>
+    <!-- Admin button -->
+    <button class="admin-btn" id="adminBtn" onclick="showAdminPanel()" title="Analytics & Cost">⚙️</button>
+  </div>
 </div>
 
 <div class="main">
@@ -199,7 +210,63 @@
   </div>
 </div>
 
-<!-- REQ 4: Admin modal -->
+<!-- Tech stack modal -->
+<div class="modal-overlay" id="techModal">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-head">
+      <h2>🛠 Technology Stack</h2>
+      <button class="modal-close" onclick="closeTechPanel()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tech-block">
+        <div class="tech-item">
+          <div class="tech-icon" style="background:#f0f9ff;color:#0369a1">⚙️</div>
+          <div>
+            <div class="tech-name">Google Apps Script</div>
+            <div class="tech-desc">Backend logic — Tableau auth, Claude API calls, caching, Google Docs export</div>
+          </div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-icon" style="background:#fef3c7;color:#d97706">📊</div>
+          <div>
+            <div class="tech-name">Tableau REST API v3.21</div>
+            <div class="tech-desc">Fetches dashboard PNG screenshot and underlying CSV data for AI analysis</div>
+          </div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-icon" style="background:#f0fdf4;color:#16a34a">🤖</div>
+          <div>
+            <div class="tech-name">Anthropic Claude AI</div>
+            <div class="tech-desc">claude-sonnet-4-6 vision model — reads dashboard image + CSV to generate executive briefings</div>
+          </div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-icon" style="background:#faf5ff;color:#7c3aed">🌐</div>
+          <div>
+            <div class="tech-name">GitHub Pages</div>
+            <div class="tech-desc">Hosts the extension UI (no server, no redirect) — required for Tableau's iframe security model</div>
+          </div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-icon" style="background:#fff8f1;color:#ea6c0a">📋</div>
+          <div>
+            <div class="tech-name">Tableau Extensions API v1.12</div>
+            <div class="tech-desc">Auto-detects dashboard name, listens for filter changes, reads worksheet names</div>
+          </div>
+        </div>
+        <div class="tech-item" style="border:none">
+          <div class="tech-icon" style="background:#eff6ff;color:#2563eb">📄</div>
+          <div>
+            <div class="tech-name">Google Docs</div>
+            <div class="tech-desc">One-click export of AI summaries as formatted, shareable documents</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Admin modal -->
 <div class="modal-overlay" id="adminModal">
   <div class="modal">
     <div class="modal-head">
@@ -345,7 +412,9 @@
         worksheetNames = (dash.worksheets || []).map(function(ws) { return ws.name; });
 
         document.getElementById('dashName').textContent   = dashboardName;
-        document.getElementById('wbName').textContent     = workbookName || 'Unknown Workbook';
+        var wbEl = document.getElementById('wbName');
+        wbEl.textContent     = workbookName;
+        wbEl.style.display   = workbookName ? 'block' : 'none';
         document.getElementById('badge').innerHTML        = '<div class="auto-badge">✅ Auto-detected from Tableau</div>';
         document.getElementById('dashCard').style.display = 'block';
         document.getElementById('analyzeBtn').disabled    = false;
@@ -489,7 +558,10 @@
 
     document.getElementById('refreshBtn').style.display = 'inline-block';
     document.getElementById('exportBtn').style.display  = 'inline-block';
-    exportData = { summary: data.summary, generatedAt: data.generatedAt || '' };
+    // Use processed markdown so export has renumbered sections + per-chart summaries
+    var exportMd = mainMd;
+    if (split.perChart) exportMd += '\n\n' + split.perChart;
+    exportData = { summary: exportMd, generatedAt: data.generatedAt || '' };
     setStatus('success', data.fromCache ? 'Loaded from cache ⚡' : 'Analysis complete ✓');
 
     document.querySelectorAll('.tab') .forEach(function(t,i){ t.classList.toggle('on',i===0); });
@@ -540,24 +612,28 @@
   }
 
   function renderAdminPanel(s) {
-    var hitRate    = s.cacheHitRate || 0;
-    var totalCost  = s.totalCost    || 0;
-    var totalSaved = s.totalSaved   || 0;
-    var avgCost    = s.avgCostPerCall || 0;
+    var totalCalls  = s.totalCalls     || 0;
+    var totalHits   = s.totalCacheHits || 0;
+    var totalClicks = totalCalls + totalHits;  // every Analyze click = API call OR cache hit
+    var hitRate     = s.cacheHitRate   || 0;
+    var totalCost   = s.totalCost      || 0;
+    var totalSaved  = s.totalSaved     || 0;
+    var avgCost     = s.avgCostPerCall || 0;
 
-    var fmt = function(n) { return n < 0.001 ? '<$0.001' : '$' + n.toFixed(4); };
+    var fmt    = function(n) { return n < 0.0001 ? '<$0.0001' : '$' + n.toFixed(4); };
     var fmtPct = function(n) { return n + '%'; };
 
     // Monthly rows (last 3 months)
     var monthKeys = Object.keys(s.monthly || {}).sort().slice(-3).reverse();
     var monthRows = monthKeys.map(function(m) {
-      var mo = s.monthly[m];
-      var calls = mo.calls || 0;
-      var hits  = mo.cacheHits || 0;
-      var rate  = (calls + hits) > 0 ? Math.round(hits / (calls + hits) * 100) : 0;
+      var mo     = s.monthly[m];
+      var calls  = mo.calls     || 0;
+      var hits   = mo.cacheHits || 0;
+      var clicks = calls + hits;
+      var rate   = clicks > 0 ? Math.round(hits / clicks * 100) : 0;
       return '<tr>' +
         '<td>' + m + '</td>' +
-        '<td>' + calls + '</td>' +
+        '<td>' + clicks + '</td>' +
         '<td class="hit">' + fmtPct(rate) + '</td>' +
         '<td class="cost">' + fmt(mo.cost || 0) + '</td>' +
         '</tr>';
@@ -566,12 +642,12 @@
     var html =
       '<div class="stat-grid">' +
         '<div class="stat-card">' +
-          '<div class="stat-val">' + (s.totalCalls || 0) + '</div>' +
-          '<div class="stat-label">Total API Calls</div>' +
+          '<div class="stat-val">' + totalClicks + '</div>' +
+          '<div class="stat-label">Total User Clicks</div>' +
         '</div>' +
         '<div class="stat-card violet">' +
-          '<div class="stat-val violet">' + (s.totalCacheHits || 0) + '</div>' +
-          '<div class="stat-label">Cache Hits (' + hitRate + '%)</div>' +
+          '<div class="stat-val violet">' + fmtPct(hitRate) + '</div>' +
+          '<div class="stat-label">Cache Hit Rate</div>' +
         '</div>' +
         '<div class="stat-card amber">' +
           '<div class="stat-val amber">' + fmt(totalCost) + '</div>' +
@@ -586,7 +662,7 @@
       '<div class="admin-section">' +
         '<h3>Monthly Breakdown</h3>' +
         '<table class="admin-table">' +
-          '<thead><tr><th>Month</th><th>Calls</th><th>Hit Rate</th><th>Cost</th></tr></thead>' +
+          '<thead><tr><th>Month</th><th>Clicks</th><th>Cache Rate</th><th>Cost</th></tr></thead>' +
           '<tbody>' + monthRows + '</tbody>' +
         '</table>' +
       '</div>' +
@@ -594,11 +670,10 @@
       '<div class="admin-section">' +
         '<h3>Configuration</h3>' +
         '<div class="config-row"><span class="config-key">Model</span><span class="config-val">' + (s.config && s.config.model || 'claude-sonnet-4-6') + '</span></div>' +
-        '<div class="config-row"><span class="config-key">Cache TTL</span><span class="config-val">' + ((s.config && s.config.summaryTtlHours) || 12) + 'h</span></div>' +
-        '<div class="config-row"><span class="config-key">Avg Cost / Call</span><span class="config-val">' + fmt(avgCost) + '</span></div>' +
-        '<div class="config-row"><span class="config-key">Input pricing</span><span class="config-val">$3 / 1M tokens</span></div>' +
-        '<div class="config-row"><span class="config-key">Output pricing</span><span class="config-val">$15 / 1M tokens</span></div>' +
-        (s.lastCall ? '<div class="config-row"><span class="config-key">Last call</span><span class="config-val" style="font-family:inherit">' + s.lastCall.slice(0,16).replace('T',' ') + '</span></div>' : '') +
+        '<div class="config-row"><span class="config-key">Cache TTL</span><span class="config-val">' + ((s.config && s.config.summaryTtlHours) || 12) + 'h — summaries reused for 12 hours</span></div>' +
+        '<div class="config-row"><span class="config-key">Cost per fresh click</span><span class="config-val">' + fmt(avgCost) + ' avg</span></div>' +
+        '<div class="config-row"><span class="config-key">Cost per cached click</span><span class="config-val">$0.0000 (free)</span></div>' +
+        (s.lastCall ? '<div class="config-row"><span class="config-key">Last analysis</span><span class="config-val" style="font-family:inherit">' + s.lastCall.slice(0,16).replace('T',' ') + ' UTC</span></div>' : '') +
         (s.lastView ? '<div class="config-row"><span class="config-key">Last dashboard</span><span class="config-val" style="font-family:inherit;font-size:.72rem">' + s.lastView + '</span></div>' : '') +
       '</div>' +
 
@@ -672,10 +747,21 @@
       .replace(/(^|<\/h2>|<\/ul>)([^<\n][^<]*)/g, '$1<p>$2</p>');
   }
 
-  // Close modal when clicking overlay background
+  // Close modals when clicking overlay background
   document.getElementById('adminModal').addEventListener('click', function(e) {
     if (e.target === this) closeAdminPanel();
   });
+  document.getElementById('techModal').addEventListener('click', function(e) {
+    if (e.target === this) closeTechPanel();
+  });
+
+  // ── Tech stack panel ─────────────────────────────────────────
+  function showTechPanel() {
+    document.getElementById('techModal').classList.add('show');
+  }
+  function closeTechPanel() {
+    document.getElementById('techModal').classList.remove('show');
+  }
 </script>
 </body>
 </html>
