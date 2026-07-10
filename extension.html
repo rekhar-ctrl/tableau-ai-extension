@@ -511,6 +511,7 @@
   var workbookName   = '';
   var worksheetNames = [];   // REQ 5
   var filterChanged  = false; // REQ 3
+  var uniqueUserId   = 'anonymous'; // Tableau hashed user ID
   var msgTimer       = null;
   var elapsedTimer   = null;
   var elapsedSec     = 0;
@@ -723,6 +724,12 @@
         dashboardName = dash.name;
         workbookName  = dash.workbook ? dash.workbook.name : '';
 
+        // Capture unique user ID for admin tracking
+        try {
+          var env = tableau.extensions.environment;
+          if (env && env.uniqueUserId) uniqueUserId = env.uniqueUserId;
+        } catch(e) {}
+
         // REQ 5: collect worksheet names — filter out Label/text objects
         // Tableau dashboards often have text label objects as worksheets (e.g. "Logo Churn Label",
         // "Last Updated Label"). These are UI elements, not data charts — skip them.
@@ -790,7 +797,8 @@
           fk:           filterInfo.fingerprint,
           fd:           (filterInfo.description || '').slice(0, 300),
           wn:           worksheetNames.join(','),
-          csv:          liveCSV   // ← filter-aware CSV from Tableau Extensions API
+          csv:          liveCSV,  // ← filter-aware CSV from Tableau Extensions API
+          uid:          uniqueUserId  // ← hashed Tableau user ID for unique user tracking
         };
 
         // POST so large CSV data doesn't hit URL length limits
@@ -1064,6 +1072,12 @@
           '<div class="adm-hero-icon">👆</div>' +
           '<div class="adm-hero-val">' + totalClicks + '</div>' +
           '<div class="adm-hero-lbl">Total Clicks</div>' +
+        '</div>' +
+        '<div class="adm-hero-div"></div>' +
+        '<div class="adm-hero-item">' +
+          '<div class="adm-hero-icon" style="color:#38bdf8">👥</div>' +
+          '<div class="adm-hero-val" style="color:#38bdf8">' + (s.uniqueUsers || 0) + '</div>' +
+          '<div class="adm-hero-lbl">Unique Users</div>' +
         '</div>' +
         '<div class="adm-hero-div"></div>' +
         '<div class="adm-hero-item">' +
