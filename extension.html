@@ -621,29 +621,41 @@
   // ── Get filter-aware CSV directly from Tableau Extensions API ─────────────
   // worksheet.getSummaryDataAsync() respects current filter state — unlike the
   // Tableau REST API which always returns the default/unfiltered view.
+  // Gets filter-aware CSV from ALL embedded worksheets.
+  // Uses ignoreSelection:true so all visible rows are included regardless of
+  // mark selection. Rows from each sheet are labelled with "# Sheet: name"
+  // so Code.gs can scan each section independently for date ranges.
   function getSummaryDataFromWorksheets(callback) {
     try {
       var dash       = tableau.extensions.dashboardContent.dashboard;
       var worksheets = dash.worksheets || [];
       if (worksheets.length === 0) { callback(''); return; }
 
-      var promises = worksheets.slice(0, 6).map(function(ws) {
-        return ws.getSummaryDataAsync({ maxRows: 150, ignoreAliases: false, ignoreSelection: true })
+      // Fetch ALL worksheets (up to 10), higher row limit to capture latest months
+      var promises = worksheets.slice(0, 10).map(function(ws) {
+        return ws.getSummaryDataAsync({ maxRows: 200, ignoreAliases: false, ignoreSelection: true })
           .then(function(dt) { return { name: ws.name, data: dt }; })
           .catch(function() { return null; });
       });
 
       Promise.all(promises).then(function(results) {
         var csvRows = [];
+        var totalRows = 0;
         results.forEach(function(r) {
           if (!r || !r.data || r.data.columns.length === 0) return;
           var dt = r.data;
+
+          // Label each worksheet section clearly for date scanning in Code.gs
           csvRows.push('# Sheet: ' + r.name);
+
           var headers = dt.columns.map(function(c) {
             return '"' + (c.fieldName || '').replace(/"/g, '""') + '"';
           });
           csvRows.push(headers.join(','));
-          dt.data.slice(0, 150).forEach(function(row) {
+
+          // Include ALL rows (up to 200 per sheet) — critical for multi-sheet date range
+          var rows = dt.data.slice(0, 200);
+          rows.forEach(function(row) {
             var cells = row.map(function(cell) {
               var v = (cell.formattedValue !== null && cell.formattedValue !== undefined)
                       ? cell.formattedValue
@@ -652,6 +664,7 @@
             });
             csvRows.push(cells.join(','));
           });
+          totalRows += rows.length;
           csvRows.push('');
         });
         callback(csvRows.join('\n'));
@@ -710,8 +723,23 @@
         dashboardName = dash.name;
         workbookName  = dash.workbook ? dash.workbook.name : '';
 
-        // REQ 5: collect worksheet names for per-chart summaries
-        worksheetNames = (dash.worksheets || []).map(function(ws) { return ws.name; });
+        // REQ 5: collect worksheet names — filter out Label/text objects
+        // Tableau dashboards often have text label objects as worksheets (e.g. "Logo Churn Label",
+        // "Last Updated Label"). These are UI elements, not data charts — skip them.
+        worksheetNames = (dash.worksheets || [])
+          .map(function(ws) { return ws.name; })
+          .filter(function(name) {
+            var lower = name.toLowerCase();
+            // Skip anything that is clearly a label, title, or navigation element
+            return !(
+              lower.match(/label/)       ||  // e.g. "Logo Churn Label"
+              lower.match(/title/)       ||  // e.g. "Section Title"
+              lower.match(/header/)      ||  // e.g. "Dashboard Header"
+              lower.match(/last updated/i)   ||  // e.g. "Last Updated Label"
+              lower.match(/deals quality/)   ||  // navigation labels
+              lower === 'label'                  // just "Label"
+            );
+          });
 
         document.getElementById('dashName').textContent   = dashboardName;
         var wbEl = document.getElementById('wbName');
