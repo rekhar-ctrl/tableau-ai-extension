@@ -1013,31 +1013,27 @@
     var fmt    = function(n) { return n < 0.0001 ? '<$0.0001' : '$' + n.toFixed(4); };
     var fmtPct = function(n) { return n + '%'; };
 
-    // ── Per-dashboard rows (sorted by clicks) ──
-    var dashRows = (s.dashboards || []).slice(0, 8).map(function(d) {
-      return '<tr>' +
-        '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + d.name + '">' + d.name + '</td>' +
-        '<td style="text-align:center">' + d.clicks + '</td>' +
-        '<td class="hit" style="text-align:center">' + d.hitRate + '%</td>' +
-        '<td class="cost" style="text-align:right">' + fmt(d.cost) + '</td>' +
-        '</tr>';
-    }).join('') || '<tr><td colspan="4" style="color:#9aa5b8;text-align:center;padding:8px">No data yet — click Analyze on any dashboard</td></tr>';
+    // Per-dashboard rows are built below with top 5 + toggle
 
     // ── Monthly rows (last 3 months) ──
     var monthKeys = Object.keys(s.monthly || {}).sort().slice(-3).reverse();
     var monthRows = monthKeys.map(function(m) {
-      var mo     = s.monthly[m];
-      var calls  = mo.calls     || 0;
-      var hits   = mo.cacheHits || 0;
-      var clicks = calls + hits;
-      var rate   = clicks > 0 ? Math.round(hits / clicks * 100) : 0;
-      return '<tr>' +
-        '<td>' + m + '</td>' +
-        '<td style="text-align:center">' + clicks + '</td>' +
-        '<td class="hit" style="text-align:center">' + rate + '%</td>' +
-        '<td class="cost" style="text-align:right">' + fmt(mo.cost || 0) + '</td>' +
-        '</tr>';
-    }).join('') || '<tr><td colspan="4" style="color:#9aa5b8;text-align:center">No data yet</td></tr>';
+      var mo       = s.monthly[m];
+      var calls    = mo.calls     || 0;
+      var hits     = mo.cacheHits || 0;
+      var clicks   = calls + hits;
+      var rate     = clicks > 0 ? Math.round(hits / clicks * 100) : 0;
+      var barColor = rate >= 60 ? '#22c55e' : rate >= 30 ? '#f59e0b' : '#ef4444';
+      return '<div class="du-row">' +
+        '<div class="du-name" style="font-weight:600">' + m + '</div>' +
+        '<div class="du-clicks"><span class="du-badge">' + clicks + '</span></div>' +
+        '<div class="du-bar-wrap">' +
+          '<div class="du-bar" style="width:' + rate + '%;background:' + barColor + '"></div>' +
+          '<span class="du-bar-label">' + rate + '%</span>' +
+        '</div>' +
+        '<div class="du-cost">' + fmt(mo.cost || 0) + '</div>' +
+      '</div>';
+    }).join('') || '<div style="text-align:center;color:#94a3b8;padding:12px;font-size:.75rem">No monthly data yet</div>';
 
     // ── Redesigned admin panel — stats top, tables middle, notes bottom ──
     var savingsPercent = totalCost > 0 ? Math.round(totalSaved / (totalCost + totalSaved) * 100) : 0;
