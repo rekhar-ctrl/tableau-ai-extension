@@ -78,10 +78,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#F0F5FB;color:#0A1F4
 .analyze-wrap{padding:8px 14px;background:#fff;border-bottom:2px solid #DBEAFE;flex-shrink:0}
 .analyze-btn-main{
   width:100%;padding:13px;border:none;border-radius:10px;
-  background:linear-gradient(135deg,#032D60 0%,#0176D3 55%,#00A1E0 100%);
+  background:linear-gradient(135deg,#0176D3 0%,#00A1E0 100%);
   color:#fff;font-size:.95rem;font-weight:800;cursor:pointer;
   display:flex;align-items:center;justify-content:center;gap:9px;
-  box-shadow:0 4px 15px rgba(1,118,211,.35);transition:all .22s;
+  box-shadow:0 4px 15px rgba(1,118,211,.3);transition:all .22s;
   letter-spacing:.01em;position:relative;overflow:hidden;
 }
 .analyze-btn-main::after{
@@ -89,7 +89,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#F0F5FB;color:#0A1F4
   background:linear-gradient(135deg,rgba(255,255,255,.12),transparent);
   opacity:0;transition:opacity .2s;
 }
-.analyze-btn-main:hover:not(:disabled){box-shadow:0 6px 22px rgba(1,118,211,.5);transform:translateY(-2px)}
+.analyze-btn-main:hover:not(:disabled){box-shadow:0 6px 22px rgba(0,161,224,.5);transform:translateY(-2px);background:linear-gradient(135deg,#0165BB 0%,#0090C8 100%)}
 .analyze-btn-main:hover:not(:disabled)::after{opacity:1}
 .analyze-btn-main:active:not(:disabled){transform:translateY(0)}
 .analyze-btn-main:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;background:linear-gradient(135deg,#94A3B8,#CBD5E1)}
@@ -124,17 +124,16 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#F0F5FB;color:#0A1F4
 
 /* Section header — executive style */
 .sbody h2{
-  font-size:.72rem;font-weight:800;color:#0176D3;
-  margin:14px 0 6px;padding:0;
-  display:flex;align-items:center;gap:6px;
+  font-size:.71rem;font-weight:800;color:#032D60;
+  margin:14px 0 6px;padding:6px 10px;
+  display:flex;align-items:center;gap:8px;
   text-transform:uppercase;letter-spacing:.6px;
+  background:#fff;border:1px solid #E2E8F0;
+  border-left:3px solid #0176D3;
+  border-radius:0 8px 8px 0;
+  box-shadow:0 1px 4px rgba(1,118,211,.07);
 }
 .sbody h2:first-child{margin-top:0}
-.sbody h2::before{
-  content:'';display:inline-block;width:3px;height:14px;
-  background:linear-gradient(180deg,#0176D3,#00A1E0);
-  border-radius:3px;flex-shrink:0;
-}
 .sbody p{margin-bottom:8px}
 .sbody ul{margin:4px 0 8px 0;list-style:none;display:flex;flex-direction:column;gap:5px}
 .sbody li{
