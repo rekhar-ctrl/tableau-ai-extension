@@ -1,435 +1,346 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Dashboard AI Summarizer</title>
-  <script src="./tableau.extensions.1.latest.min.js"></script>
-  <style>
-    /* ═══════════════════════════════════════════════════════════
-       TABLEAU EXECUTIVE PALETTE
-       Primary:  Tableau Blue   #0176D3
-       Dark:     Tableau Navy   #032D60
-       Accent:   Tableau Teal   #00A1E0
-       Success:  #22C55E
-       Surface:  #F4F7FB (blue-tinted off-white)
-    ═══════════════════════════════════════════════════════════ */
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Segoe UI',system-ui,sans-serif;background:#F4F7FB;color:#0A1F44;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Dashboard AI Summarizer</title>
+<script src="./tableau.extensions.1.latest.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#F0F5FB;color:#0A1F44;height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:13px}
 
-    /* ══ COMPACT TOP BAR ══════════════════════════════════════ */
-    .top-bar{
-      background:linear-gradient(135deg,#032D60 0%,#0176D3 60%,#00A1E0 100%);
-      border-bottom:3px solid #00A1E0;flex-shrink:0;
-    }
-    .top-row1{display:flex;align-items:center;gap:8px;padding:8px 12px 5px}
-    .top-logo{
-      width:28px;height:28px;background:rgba(255,255,255,.18);
-      border:1.5px solid rgba(255,255,255,.35);border-radius:7px;
-      display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;
-    }
-    .top-title-block{flex:1;min-width:0}
-    .top-title{font-size:.84rem;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
-    .top-sub{font-size:.6rem;color:#BAE6FD;margin-top:1px}
-    .top-actions{display:flex;gap:5px;flex-shrink:0}
-    .top-act-btn{
-      height:24px;padding:0 9px;background:rgba(255,255,255,.15);
-      border:1px solid rgba(255,255,255,.3);border-radius:5px;
-      color:#fff;font-size:.64rem;font-weight:700;cursor:pointer;
-      display:flex;align-items:center;justify-content:center;
-      transition:background .15s;white-space:nowrap;letter-spacing:.02em;
-    }
-    .top-act-btn:hover{background:rgba(255,255,255,.28)}
-    .top-row2{display:flex;align-items:center;gap:7px;padding:0 10px 6px}
-    .top-info{
-      flex:1;display:flex;align-items:center;gap:6px;
-      background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);
-      border-radius:7px;padding:5px 9px;min-width:0;
-    }
-    .idle-dot{background:#94A3B8}
-    .top-dot-loading{background:#60A5FA;animation:pulse 1s infinite}
-    .top-dot-success{background:#4ADE80;box-shadow:0 0 6px rgba(74,222,128,.5)}
-    .top-dot-error{background:#F87171}
-    .top-dash-name{font-size:.77rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .top-badge{font-size:.62rem;font-weight:700;background:rgba(74,222,128,.2);color:#4ADE80;
-      border:1px solid rgba(74,222,128,.35);border-radius:10px;padding:1px 6px;flex-shrink:0}
-    .top-analyze-btn{
-      flex-shrink:0;padding:6px 14px;
-      background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.4);
-      border-radius:8px;color:#fff;font-size:.76rem;font-weight:800;
-      cursor:pointer;white-space:nowrap;transition:all .2s;
-      display:flex;align-items:center;gap:5px;
-    }
-    .top-analyze-btn:hover:not(:disabled){background:rgba(255,255,255,.28);border-color:rgba(255,255,255,.6)}
-    .top-analyze-btn:disabled{opacity:.4;cursor:not-allowed}
-    .top-analyze-btn.loading{background:rgba(0,161,224,.3);border-color:rgba(0,161,224,.6)}
+/* ══ HEADER ══════════════════════════════════════════════════ */
+.hdr{
+  background:linear-gradient(135deg,#032D60 0%,#0176D3 65%,#00A1E0 100%);
+  padding:9px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;
+  border-bottom:2px solid rgba(0,161,224,.6);
+}
+.hdr-logo{
+  width:30px;height:30px;background:rgba(255,255,255,.15);
+  border:1.5px solid rgba(255,255,255,.3);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;
+}
+.hdr-info{flex:1;min-width:0}
+.hdr-title{font-size:.88rem;font-weight:800;color:#fff;letter-spacing:-.01em}
+.hdr-sub{font-size:.6rem;color:#BAE6FD;margin-top:1px;font-weight:400}
+.hdr-btns{display:flex;gap:5px;flex-shrink:0}
+.hdr-btn{
+  padding:3px 9px;background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.25);border-radius:5px;
+  color:#fff;font-size:.63rem;font-weight:700;cursor:pointer;
+  transition:background .15s;white-space:nowrap;letter-spacing:.02em;
+}
+.hdr-btn:hover{background:rgba(255,255,255,.25)}
 
-    /* Full-width prominent Analyze button below top bar */
-    .analyze-bar{
-      background:#fff;border-bottom:2px solid #DBEAFE;
-      padding:8px 12px;flex-shrink:0;
-    }
-    .analyze-main-btn{
-      width:100%;padding:12px;border:none;border-radius:10px;
-      background:linear-gradient(135deg,#032D60 0%,#0176D3 60%,#00A1E0 100%);
-      color:#fff;font-size:.95rem;font-weight:800;cursor:pointer;
-      display:flex;align-items:center;justify-content:center;gap:9px;
-      box-shadow:0 4px 14px rgba(1,118,211,.35);
-      transition:all .22s;letter-spacing:.01em;
-    }
-    .analyze-main-btn:hover:not(:disabled){
-      box-shadow:0 6px 20px rgba(1,118,211,.5);transform:translateY(-2px);
-    }
-    .analyze-main-btn:active:not(:disabled){transform:translateY(0)}
-    .analyze-main-btn:disabled{
-      opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;
-      background:linear-gradient(135deg,#94A3B8,#CBD5E1);
-    }
-    .analyze-main-btn .spark{font-size:1.05rem;animation:sparkle 2.5s infinite}
-    @keyframes sparkle{0%,100%{transform:scale(1) rotate(0deg)}50%{transform:scale(1.25) rotate(18deg)}}
-    .top-filter{
-      display:none;background:rgba(251,191,36,.15);border-top:1px solid rgba(251,191,36,.35);
-      padding:4px 12px;font-size:.68rem;color:#FEF08A;font-weight:600;
-    }
-    .top-filter.show{display:block}
+/* ══ CONTEXT CARD ═════════════════════════════════════════════ */
+.ctx-card{
+  background:#fff;border-bottom:2px solid #DBEAFE;
+  padding:8px 14px;flex-shrink:0;display:none;
+}
+.ctx-name{font-size:.95rem;font-weight:800;color:#032D60;margin-bottom:4px;display:flex;align-items:center;gap:7px}
+.ctx-name::before{content:'📊';font-size:.85rem}
+.ctx-chips{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.ctx-chip{
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:.63rem;font-weight:600;padding:2px 8px;border-radius:20px;
+}
+.chip-date{background:#E0F2FE;color:#0369A1;border:1px solid #BAE6FD}
+.chip-cached{background:#DCFCE7;color:#15803D;border:1px solid #86EFAC}
+.chip-fresh{background:#FFF7ED;color:#C2410C;border:1px solid #FED7AA}
+.chip-loading{background:#EEF2FF;color:#4338CA;border:1px solid #C7D2FE}
+.chip-updated{background:#F8FAFC;color:#64748B;border:1px solid #E2E8F0}
 
-    /* ══ HIDDEN HEADER (legacy kept for JS) ══════════════════ */
-    .header{display:none}
-    .hdr-logo,.hdr-text,.hdr-badge{display:none}
+/* ══ STATUS (slim, inside main) ══════════════════════════════ */
+.status-slim{
+  display:flex;align-items:center;gap:7px;padding:7px 11px;
+  border-radius:8px;font-size:.74rem;font-weight:600;transition:all .25s;
+}
+.status-slim.idle   {background:#F8FAFC;border:1px solid #E2E8F0;color:#64748B}
+.status-slim.loading{background:#EFF6FF;border:1px solid #93C5FD;color:#1D4ED8}
+.status-slim.success{background:#F0FDF4;border:1px solid #86EFAC;color:#15803D}
+.status-slim.error  {background:#FEF2F2;border:1px solid #FCA5A5;color:#DC2626}
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.idle    .sdot{background:#94A3B8}
+.loading .sdot{background:#3B82F6;animation:blink 1s infinite}
+.success .sdot{background:#22C55E;box-shadow:0 0 5px #22C55E80}
+.error   .sdot{background:#EF4444}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
 
-    /* ══ MAIN ════════════════════════════════════════════════ */
-    .main{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
-    .main::-webkit-scrollbar{width:4px}
-    .main::-webkit-scrollbar-thumb{background:#BAE6FD;border-radius:4px}
+/* ══ FILTER BANNER ════════════════════════════════════════════ */
+.filter-banner{
+  display:none;background:#FFFBEB;border:1.5px solid #FCD34D;
+  border-radius:8px;padding:6px 11px;
+  font-size:.72rem;color:#92400E;align-items:center;gap:7px;font-weight:600;
+}
+.filter-banner.show{display:flex}
 
-    /* ══ STATUS BAR (hidden — using top bar) ════════════════ */
-    .status-bar{display:none}
+/* ══ ANALYZE BUTTON ══════════════════════════════════════════ */
+.analyze-wrap{padding:8px 14px;background:#fff;border-bottom:2px solid #DBEAFE;flex-shrink:0}
+.analyze-btn-main{
+  width:100%;padding:13px;border:none;border-radius:10px;
+  background:linear-gradient(135deg,#032D60 0%,#0176D3 55%,#00A1E0 100%);
+  color:#fff;font-size:.95rem;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  box-shadow:0 4px 15px rgba(1,118,211,.35);transition:all .22s;
+  letter-spacing:.01em;position:relative;overflow:hidden;
+}
+.analyze-btn-main::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.12),transparent);
+  opacity:0;transition:opacity .2s;
+}
+.analyze-btn-main:hover:not(:disabled){box-shadow:0 6px 22px rgba(1,118,211,.5);transform:translateY(-2px)}
+.analyze-btn-main:hover:not(:disabled)::after{opacity:1}
+.analyze-btn-main:active:not(:disabled){transform:translateY(0)}
+.analyze-btn-main:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;background:linear-gradient(135deg,#94A3B8,#CBD5E1)}
+.btn-spark{font-size:1rem;animation:sparkle 2.5s infinite}
+@keyframes sparkle{0%,100%{transform:scale(1) rotate(0deg)}50%{transform:scale(1.3) rotate(18deg)}}
 
-    /* ══ FILTER BANNER ══════════════════════════════════════ */
-    .filter-banner{background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:8px;
-      padding:7px 11px;font-size:.72rem;color:#92400E;display:none;align-items:center;gap:7px;font-weight:600}
-    .filter-banner.show{display:flex}
+/* ══ MAIN SCROLL AREA ════════════════════════════════════════ */
+.main{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.main::-webkit-scrollbar{width:4px}
+.main::-webkit-scrollbar-thumb{background:#BAE6FD;border-radius:4px}
 
-    /* ══ DASH CARD (hidden — using top bar) ═════════════════ */
-    .dash-card{display:none!important}
-    #dashCard{display:none!important}
-    .auto-badge,.warn-badge{display:none}
+/* ══ PROGRESS ════════════════════════════════════════════════ */
+.progress{background:#fff;border:1.5px solid #DBEAFE;border-radius:10px;padding:16px;text-align:center;display:none}
+.pbar-wrap{background:#DBEAFE;border-radius:99px;height:4px;margin:10px 0 7px;overflow:hidden}
+.pbar{height:100%;background:linear-gradient(90deg,#032D60,#0176D3,#00A1E0);border-radius:99px;animation:pani 1.8s ease-in-out infinite;width:55%}
+@keyframes pani{0%{transform:translateX(-150%)}100%{transform:translateX(300%)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+.pmsg{font-size:.82rem;font-weight:700;color:#032D60;margin-bottom:3px}
+.psub{font-size:.7rem;color:#94A3B8}
+.elapsed{font-size:.68rem;color:#0176D3;margin-top:3px;font-weight:600}
 
-    /* ══ ANALYZE BUTTON (old class — hidden, new button uses analyze-main-btn) ══ */
-    .analyze-btn{display:none!important}
-    .btn-spark{display:none}
+/* ══ RESULTS WRAPPER ═════════════════════════════════════════ */
+.results-header{
+  display:flex;align-items:center;gap:8px;
+  padding-bottom:6px;border-bottom:2px solid #DBEAFE;margin-bottom:10px;
+}
+.results-title{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#0176D3;flex:1}
+.results-badge{font-size:.62rem;font-weight:700;background:#E0F2FE;color:#0176D3;border:1px solid #BAE6FD;border-radius:20px;padding:2px 8px}
 
-    /* ══ PROGRESS ════════════════════════════════════════════ */
-    .progress{background:#fff;border:1.5px solid #BFDBFE;border-radius:10px;
-      padding:16px;text-align:center;display:none;
-      box-shadow:0 1px 4px rgba(1,118,211,.08)}
-    .progress-bar-wrap{background:#DBEAFE;border-radius:99px;height:4px;margin:10px 0 7px;overflow:hidden}
-    .progress-bar{height:100%;background:linear-gradient(90deg,#0176D3,#00A1E0,#0176D3);
-      border-radius:99px;animation:progressAnim 1.8s ease-in-out infinite;width:55%}
-    @keyframes progressAnim{0%{transform:translateX(-150%)}100%{transform:translateX(300%)}}
-    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
-    .pmsg{font-size:.82rem;font-weight:700;color:#032D60;margin-bottom:3px}
-    .psub{font-size:.7rem;color:#94A3B8}
-    .elapsed{font-size:.68rem;color:#0176D3;margin-top:3px;font-weight:600}
+/* ══ SUMMARY SECTIONS ════════════════════════════════════════ */
+.sbody{font-size:.78rem;line-height:1.75;color:#334155}
 
-    /* ══ TABS ════════════════════════════════════════════════ */
-    .tabs{display:flex;border-bottom:2px solid #DBEAFE;margin-bottom:10px}
-    .tab{padding:6px 12px;font-size:.72rem;font-weight:700;text-transform:uppercase;
-      letter-spacing:.5px;color:#94A3B8;border:none;background:none;cursor:pointer;
-      border-bottom:2.5px solid transparent;margin-bottom:-2px;transition:all .2s}
-    .tab.on{color:#0176D3;border-bottom-color:#0176D3}
-    .tab:hover:not(.on){color:#0176D3}
-    .tabp{display:none}
-    .tabp.on{display:block}
+/* Section header — executive style */
+.sbody h2{
+  font-size:.72rem;font-weight:800;color:#0176D3;
+  margin:14px 0 6px;padding:0;
+  display:flex;align-items:center;gap:6px;
+  text-transform:uppercase;letter-spacing:.6px;
+}
+.sbody h2:first-child{margin-top:0}
+.sbody h2::before{
+  content:'';display:inline-block;width:3px;height:14px;
+  background:linear-gradient(180deg,#0176D3,#00A1E0);
+  border-radius:3px;flex-shrink:0;
+}
+.sbody p{margin-bottom:8px}
+.sbody ul{margin:4px 0 8px 0;list-style:none;display:flex;flex-direction:column;gap:5px}
+.sbody li{
+  background:#F0F7FF;border:1px solid #DBEAFE;
+  border-left:3px solid #0176D3;border-radius:0 7px 7px 0;
+  padding:6px 10px;font-size:.77rem;color:#0A1F44;line-height:1.5;
+}
+.sbody ol{margin:4px 0 8px 0;list-style:none;counter-reset:rec;display:flex;flex-direction:column;gap:6px}
+.sbody ol li{
+  counter-increment:rec;background:#fff;
+  border:1.5px solid #DBEAFE;border-radius:9px;padding:8px 10px 8px 36px;
+  position:relative;font-size:.77rem;color:#0A1F44;line-height:1.55;
+}
+.sbody ol li::before{
+  content:counter(rec);position:absolute;left:8px;top:50%;transform:translateY(-50%);
+  width:20px;height:20px;background:linear-gradient(135deg,#032D60,#0176D3);
+  color:#fff;font-size:.65rem;font-weight:800;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.sbody strong{color:#032D60;font-weight:700}
 
-    /* ══ SUMMARY BODY ════════════════════════════════════════ */
-    .sbody{font-size:.78rem;line-height:1.75;color:#334155}
-    .sbody h2{
-      font-size:.76rem;font-weight:800;color:#fff;
-      margin:12px 0 6px;padding:6px 11px;
-      background:linear-gradient(135deg,#032D60,#0176D3);
-      border-radius:6px;letter-spacing:.01em;
-    }
-    .sbody h2:first-child{margin-top:0}
-    .sbody p{margin-bottom:7px}
-    .sbody ul{margin:4px 0 7px 16px}
-    .sbody li{margin-bottom:3px}
-    .sbody strong{color:#032D60;font-weight:700}
+/* Executive one-liner highlight */
+.exec-oneliner{
+  background:linear-gradient(135deg,#E0F2FE,#EFF6FF);
+  border:1.5px solid #BAE6FD;border-left:4px solid #0176D3;
+  border-radius:0 10px 10px 0;padding:10px 12px;margin-top:4px;
+  font-size:.78rem;color:#032D60;font-weight:600;line-height:1.65;
+  font-style:italic;
+}
+.exec-oneliner::before{content:'💡 ';font-style:normal}
 
-    /* ══ PER-CHART ═══════════════════════════════════════════ */
-    .pc-section{margin-top:14px;padding-top:12px;border-top:2px dashed #BFDBFE}
-    .pc-title{font-size:.67rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;
-      color:#0176D3;margin-bottom:10px;display:flex;align-items:center;gap:7px}
-    .pc-title::after{content:'';flex:1;height:1px;background:#DBEAFE}
-    .pc-item{
-      background:#F0F7FF;border:1px solid #BFDBFE;
-      border-left:3px solid #0176D3;
-      border-radius:0 8px 8px 0;padding:9px 11px;margin-bottom:7px;
-      transition:transform .15s;
-    }
-    .pc-item:hover{transform:translateX(2px)}
-    .pc-name{font-size:.71rem;font-weight:800;color:#032D60;margin-bottom:3px}
-    .pc-trend{font-size:.75rem;color:#374151;line-height:1.5}
+/* ══ PER-CHART ════════════════════════════════════════════════ */
+.pc-section{margin-top:12px;padding-top:10px;border-top:2px dashed #DBEAFE}
+.pc-title{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;
+  color:#0176D3;margin-bottom:9px;display:flex;align-items:center;gap:7px}
+.pc-title::after{content:'';flex:1;height:1px;background:#DBEAFE}
+.pc-item{
+  background:#F8FBFF;border:1px solid #DBEAFE;border-left:3px solid #0176D3;
+  border-radius:0 8px 8px 0;padding:8px 11px;margin-bottom:6px;transition:transform .15s;
+}
+.pc-item:hover{transform:translateX(2px)}
+.pc-name{font-size:.7rem;font-weight:800;color:#032D60;margin-bottom:2px}
+.pc-trend{font-size:.74rem;color:#374151;line-height:1.5}
 
-    /* ══ FOOTER ══════════════════════════════════════════════ */
-    .footer{
-      padding:6px 12px;border-top:2px solid #DBEAFE;
-      display:flex;justify-content:space-between;align-items:center;
-      flex-shrink:0;background:#fff;gap:6px;
-    }
-    .footer-left{display:flex;gap:5px;align-items:center;flex-wrap:wrap;min-width:0}
-    .footer-right{display:flex;gap:5px;flex-shrink:0}
-    .footer-icon-btn{
-      padding:3px 8px;background:#F0F7FF;color:#0176D3;
-      border:1px solid #BFDBFE;border-radius:6px;font-size:.66rem;
-      font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s;
-    }
-    .footer-icon-btn:hover{background:#DBEAFE}
-    .footer-ts{font-size:.65rem;color:#94A3B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .rbtn{
-      padding:5px 11px;background:#F0F7FF;color:#0176D3;
-      border:1.5px solid #BFDBFE;border-radius:7px;font-size:.7rem;font-weight:700;
-      cursor:pointer;transition:all .15s;white-space:nowrap;
-    }
-    .rbtn:hover{background:#DBEAFE;border-color:#93C5FD}
-    .export-btn{
-      padding:5px 11px;
-      background:linear-gradient(135deg,#032D60,#0176D3);
-      color:#fff;border:none;border-radius:7px;font-size:.7rem;
-      font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;
-      box-shadow:0 2px 6px rgba(1,118,211,.3);
-    }
-    .export-btn:hover{box-shadow:0 4px 10px rgba(1,118,211,.4);transform:translateY(-1px)}
-    .export-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
-    .cbadge{
-      padding:2px 7px;background:#E0F2FE;color:#0369A1;
-      border:1px solid #BAE6FD;border-radius:20px;font-size:.63rem;font-weight:700;
-    }
+/* ══ FOOTER ══════════════════════════════════════════════════ */
+.footer{
+  padding:6px 12px;border-top:2px solid #DBEAFE;
+  display:flex;justify-content:space-between;align-items:center;
+  flex-shrink:0;background:#fff;gap:6px;
+}
+.footer-left{display:flex;gap:5px;align-items:center;min-width:0;flex-wrap:wrap}
+.footer-right{display:flex;gap:5px;flex-shrink:0}
+.footer-ts{font-size:.63rem;color:#94A3B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cbadge{padding:2px 7px;background:#DCFCE7;color:#15803D;border:1px solid #86EFAC;border-radius:20px;font-size:.62rem;font-weight:700}
+.rbtn{padding:4px 11px;background:#F0F7FF;color:#0176D3;border:1.5px solid #BFDBFE;border-radius:7px;font-size:.69rem;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
+.rbtn:hover{background:#DBEAFE}
+.export-btn{padding:4px 11px;background:linear-gradient(135deg,#032D60,#0176D3);color:#fff;border:none;border-radius:7px;font-size:.69rem;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;box-shadow:0 2px 6px rgba(1,118,211,.3)}
+.export-btn:hover{box-shadow:0 4px 10px rgba(1,118,211,.45);transform:translateY(-1px)}
+.export-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
 
-    /* ══ MODAL BASE ══════════════════════════════════════════ */
-    .modal-overlay{
-      position:fixed;inset:0;background:rgba(3,45,96,.55);
-      z-index:100;display:none;align-items:center;justify-content:center;padding:16px;
-    }
-    .modal-overlay.show{display:flex}
-    .modal{
-      background:#fff;border-radius:14px;width:100%;max-width:420px;
-      max-height:88vh;overflow-y:auto;
-      box-shadow:0 20px 50px rgba(3,45,96,.25);border:2px solid #BFDBFE;
-    }
-    .modal::-webkit-scrollbar{width:4px}
-    .modal::-webkit-scrollbar-thumb{background:#BFDBFE;border-radius:4px}
-    .modal-head{
-      display:flex;align-items:center;padding:13px 16px;
-      border-bottom:2px solid #DBEAFE;position:sticky;top:0;
-      background:#fff;z-index:1;border-radius:14px 14px 0 0;
-    }
-    .modal-head h2{font-size:.9rem;font-weight:800;color:#032D60;flex:1}
-    .modal-close{background:none;border:none;color:#94A3B8;cursor:pointer;
-      font-size:1.1rem;padding:4px 8px;border-radius:6px;transition:all .15s;font-weight:700}
-    .modal-close:hover{background:#F0F7FF;color:#0176D3}
-    .modal-body{padding:16px}
-
-    /* ══ PASSWORD MODAL ══════════════════════════════════════ */
-    .pwd-modal{max-width:340px}
-    .pwd-icon{
-      width:56px;height:56px;
-      background:linear-gradient(135deg,#032D60,#0176D3);
-      border-radius:14px;display:flex;align-items:center;justify-content:center;
-      font-size:1.5rem;margin:0 auto 14px;box-shadow:0 6px 18px rgba(1,118,211,.35);
-    }
-    .pwd-title{font-size:.92rem;font-weight:800;color:#032D60;text-align:center;margin-bottom:4px}
-    .pwd-sub{font-size:.73rem;color:#64748B;text-align:center;margin-bottom:16px;line-height:1.5}
-    .pwd-input{
-      width:100%;padding:10px 12px;border:2px solid #BFDBFE;border-radius:9px;
-      font-size:.82rem;outline:none;transition:border .2s;font-family:inherit;
-      color:#032D60;letter-spacing:.1em;background:#F8FAFC;
-    }
-    .pwd-input:focus{border-color:#0176D3;background:#fff;box-shadow:0 0 0 3px rgba(1,118,211,.12)}
-    .pwd-error{font-size:.71rem;color:#DC2626;margin-top:6px;display:none;
-      background:#FEF2F2;padding:5px 9px;border-radius:6px;border:1px solid #FCA5A5;font-weight:600}
-    .pwd-submit{
-      width:100%;margin-top:12px;padding:11px;
-      background:linear-gradient(135deg,#032D60,#0176D3);
-      color:#fff;border:none;border-radius:9px;font-size:.82rem;
-      font-weight:800;cursor:pointer;transition:all .2s;
-      box-shadow:0 3px 10px rgba(1,118,211,.35);
-    }
-    .pwd-submit:hover{box-shadow:0 5px 16px rgba(1,118,211,.45);transform:translateY(-1px)}
-
-    /* ══ ADMIN MODAL ═════════════════════════════════════════ */
-    .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
-    .stat-card{background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:10px;padding:11px 13px}
-    .stat-card.green{background:#F0FDF4;border-color:#86EFAC}
-    .stat-card.amber{background:#FFFBEB;border-color:#FDE68A}
-    .stat-card.violet{background:#F0F7FF;border-color:#BFDBFE}
-    .stat-card.blue{background:#E0F2FE;border-color:#BAE6FD}
-    .stat-val{font-size:1.1rem;font-weight:800;color:#032D60;margin-bottom:2px}
-    .stat-val.green{color:#15803D}
-    .stat-val.amber{color:#D97706}
-    .stat-val.violet{color:#0176D3}
-    .stat-val.blue{color:#0369A1}
-    .stat-label{font-size:.63rem;color:#64748B;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
-    .admin-section{margin-bottom:14px}
-    .admin-section h3{font-size:.67rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;
-      color:#0176D3;margin-bottom:8px;display:flex;align-items:center;gap:6px}
-    .admin-section h3::after{content:'';flex:1;height:1px;background:#DBEAFE}
-    .admin-table{width:100%;border-collapse:collapse;font-size:.73rem}
-    .admin-table th{text-align:left;color:#94A3B8;font-weight:700;font-size:.65rem;
-      text-transform:uppercase;padding:5px 7px;border-bottom:2px solid #DBEAFE}
-    .admin-table td{padding:6px 7px;color:#374151;border-bottom:1px solid #F0F7FF}
-    .admin-table tr:last-child td{border-bottom:none}
-    .admin-table tr:hover td{background:#F0F7FF}
-    .admin-table .cost{color:#15803D;font-weight:700}
-    .admin-table .hit{color:#0176D3;font-weight:700}
-    .config-row{display:flex;justify-content:space-between;align-items:center;
-      padding:6px 0;border-bottom:1px solid #F0F7FF;font-size:.73rem;gap:8px}
-    .config-row:last-child{border-bottom:none}
-    .config-key{color:#64748B}
-    .config-val{color:#032D60;font-weight:700;font-family:'Courier New',monospace;font-size:.69rem;text-align:right}
-    .clear-btn{width:100%;padding:9px;background:#FEF2F2;color:#DC2626;
-      border:1.5px solid #FCA5A5;border-radius:8px;font-size:.73rem;
-      font-weight:700;cursor:pointer;margin-top:10px;transition:all .15s}
-    .clear-btn:hover{background:#FEE2E2}
-    .admin-loading{text-align:center;color:#94A3B8;font-size:.8rem;padding:24px}
-    .info-bar{background:linear-gradient(135deg,#F0FDF4,#F0F7FF);
-      border:1.5px solid #86EFAC;border-radius:10px;
-      padding:10px 12px;margin-bottom:14px;font-size:.71rem;color:#166534;line-height:1.75}
-    .info-bar-title{font-weight:800;margin-bottom:4px;font-size:.73rem;color:#032D60}
-
-    /* ══ REDESIGNED ADMIN PANEL ══════════════════════════════ */
-    .adm-hero{display:flex;align-items:stretch;
-      background:linear-gradient(135deg,#032D60,#0176D3,#00A1E0);
-      border-radius:10px;margin-bottom:14px;overflow:hidden}
-    .adm-hero-item{flex:1;text-align:center;padding:13px 6px}
-    .adm-hero-div{width:1px;background:rgba(255,255,255,.18);margin:8px 0}
-    .adm-hero-icon{font-size:1rem;margin-bottom:3px}
-    .adm-hero-val{font-size:1rem;font-weight:800;color:#fff;letter-spacing:-.02em}
-    .adm-hero-lbl{font-size:.58rem;color:#BAE6FD;text-transform:uppercase;letter-spacing:.6px;margin-top:2px;font-weight:600}
-    .adm-cost-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:14px}
-    .adm-cost-card{border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px;border:1.5px solid transparent}
-    .adm-cost-amber{background:#FFFBEB;border-color:#FDE68A}
-    .adm-cost-green{background:#F0FDF4;border-color:#86EFAC}
-    .adm-cost-blue{background:#E0F2FE;border-color:#BAE6FD}
-    .adm-cost-icon{font-size:1.2rem;flex-shrink:0}
-    .adm-cost-val{font-size:.86rem;font-weight:800;color:#032D60}
-    .adm-cost-lbl{font-size:.59rem;color:#64748B;text-transform:uppercase;letter-spacing:.4px;font-weight:600;margin-top:1px}
-    .adm-section{background:#fff;border:1.5px solid #DBEAFE;border-radius:10px;padding:11px 13px;margin-bottom:9px}
-    .adm-section-hdr{font-size:.77rem;font-weight:800;color:#032D60;margin-bottom:9px;display:flex;align-items:center;gap:6px}
-    .adm-section-icon{font-size:.95rem}
-    .adm-section-sub{margin-left:auto;font-size:.65rem;color:#94A3B8;font-weight:500;background:#F0F7FF;padding:2px 7px;border-radius:20px;border:1px solid #BFDBFE}
-    .du-header{display:flex;align-items:center;gap:6px;padding:3px 6px;margin-bottom:3px}
-    .du-th{font-size:.61rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94A3B8}
-    .du-row{display:flex;align-items:center;gap:6px;padding:6px;border-radius:7px;transition:background .15s}
-    .du-row:hover{background:#F0F7FF}
-    .du-rank{width:20px;font-size:.8rem;flex-shrink:0;text-align:center}
-    .du-name{flex:1;font-size:.73rem;color:#032D60;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
-    .du-clicks{width:42px;text-align:center;flex-shrink:0}
-    .du-badge{background:#E0F2FE;color:#0176D3;border-radius:20px;padding:1px 7px;font-size:.67rem;font-weight:700}
-    .du-bar-wrap{flex:1;display:flex;align-items:center;gap:5px;min-width:0}
-    .du-bar{height:5px;border-radius:99px;min-width:2px;flex-shrink:0}
-    .du-bar-label{font-size:.67rem;font-weight:700;color:#374151;white-space:nowrap;flex-shrink:0}
-    .du-cost{width:54px;text-align:right;font-size:.71rem;font-weight:700;color:#15803D;flex-shrink:0}
-    .adm-config-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-    .adm-cfg-item{background:#F8FAFC;border:1px solid #DBEAFE;border-radius:7px;padding:8px 10px}
-    .adm-cfg-key{font-size:.61rem;text-transform:uppercase;letter-spacing:.5px;color:#94A3B8;font-weight:700;margin-bottom:3px}
-    .adm-cfg-val{font-size:.73rem;font-weight:700;color:#032D60;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .adm-notes{background:#F8FAFC;border:1px solid #DBEAFE;border-radius:9px;margin-bottom:9px}
-    .adm-notes-summary{list-style:none;padding:9px 13px;font-size:.72rem;font-weight:700;color:#0176D3;cursor:pointer;border-radius:9px;transition:background .15s;display:flex;align-items:center}
-    .adm-notes-summary::-webkit-details-marker{display:none}
-    .adm-notes-summary::after{content:'▸';margin-left:auto;transition:transform .2s;font-size:.8rem;color:#94A3B8}
-    details[open] .adm-notes-summary::after{transform:rotate(90deg)}
-    .adm-notes-body{padding:0 13px 11px;font-size:.7rem;color:#64748B;line-height:1.7}
-    .adm-notes-body p{margin-bottom:5px}
-    .adm-notes-body strong{color:#032D60}
-    .du-more{margin-top:2px}
-    .du-more-summary{list-style:none;padding:6px 8px;font-size:.7rem;font-weight:700;color:#0176D3;cursor:pointer;border-radius:7px;transition:background .15s;display:flex;align-items:center}
-    .du-more-summary::-webkit-details-marker{display:none}
-    .du-more-summary:hover{background:#F0F7FF}
-    details[open] .du-more-summary::before{content:'▾ '}
-    .du-more-body{border-top:1px dashed #BFDBFE;padding-top:3px;margin-top:2px}
-
-    /* ══ TECH / ABOUT MODAL ══════════════════════════════════ */
-    .tech-block{display:flex;flex-direction:column}
-    .tech-item{display:flex;align-items:flex-start;gap:11px;padding:10px 0;border-bottom:1px solid #F0F7FF}
-    .tech-item:last-child{border-bottom:none}
-    .tech-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
-    .tech-name{font-size:.78rem;font-weight:700;color:#032D60;margin-bottom:2px}
-    .tech-desc{font-size:.7rem;color:#64748B;line-height:1.45}
-  </style>
+/* ══ MODALS ══════════════════════════════════════════════════ */
+.modal-overlay{position:fixed;inset:0;background:rgba(3,45,96,.55);z-index:100;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:420px;max-height:88vh;overflow-y:auto;box-shadow:0 20px 50px rgba(3,45,96,.25);border:2px solid #BFDBFE}
+.modal::-webkit-scrollbar{width:4px}
+.modal::-webkit-scrollbar-thumb{background:#BAE6FD;border-radius:4px}
+.modal-head{display:flex;align-items:center;padding:13px 16px;border-bottom:2px solid #DBEAFE;position:sticky;top:0;background:#fff;z-index:1;border-radius:14px 14px 0 0}
+.modal-head h2{font-size:.88rem;font-weight:800;color:#032D60;flex:1}
+.modal-close{background:none;border:none;color:#94A3B8;cursor:pointer;font-size:1.1rem;padding:4px 8px;border-radius:6px;transition:all .15s;font-weight:700}
+.modal-close:hover{background:#F0F7FF;color:#0176D3}
+.modal-body{padding:16px}
+/* Password modal */
+.pwd-modal{max-width:340px}
+.pwd-icon{width:54px;height:54px;background:linear-gradient(135deg,#032D60,#0176D3);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto 14px;box-shadow:0 6px 18px rgba(1,118,211,.35)}
+.pwd-title{font-size:.9rem;font-weight:800;color:#032D60;text-align:center;margin-bottom:4px}
+.pwd-sub{font-size:.72rem;color:#64748B;text-align:center;margin-bottom:16px;line-height:1.5}
+.pwd-input{width:100%;padding:10px 12px;border:2px solid #BFDBFE;border-radius:9px;font-size:.82rem;outline:none;transition:border .2s;font-family:inherit;color:#032D60;letter-spacing:.1em;background:#F8FAFC}
+.pwd-input:focus{border-color:#0176D3;background:#fff;box-shadow:0 0 0 3px rgba(1,118,211,.12)}
+.pwd-error{font-size:.71rem;color:#DC2626;margin-top:6px;display:none;background:#FEF2F2;padding:5px 9px;border-radius:6px;border:1px solid #FCA5A5;font-weight:600}
+.pwd-submit{width:100%;margin-top:12px;padding:11px;background:linear-gradient(135deg,#032D60,#0176D3);color:#fff;border:none;border-radius:9px;font-size:.82rem;font-weight:800;cursor:pointer;transition:all .2s;box-shadow:0 3px 10px rgba(1,118,211,.35)}
+.pwd-submit:hover{box-shadow:0 5px 16px rgba(1,118,211,.45);transform:translateY(-1px)}
+/* Admin stats */
+.adm-hero{display:flex;align-items:stretch;background:linear-gradient(135deg,#032D60,#0176D3,#00A1E0);border-radius:10px;margin-bottom:14px;overflow:hidden}
+.adm-hero-item{flex:1;text-align:center;padding:12px 5px}
+.adm-hero-div{width:1px;background:rgba(255,255,255,.18);margin:8px 0}
+.adm-hero-icon{font-size:.95rem;margin-bottom:3px}
+.adm-hero-val{font-size:.98rem;font-weight:800;color:#fff;letter-spacing:-.02em}
+.adm-hero-lbl{font-size:.57rem;color:#BAE6FD;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;font-weight:600}
+.adm-cost-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:14px}
+.adm-cost-card{border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px;border:1.5px solid transparent}
+.adm-cost-amber{background:#FFFBEB;border-color:#FDE68A}
+.adm-cost-green{background:#F0FDF4;border-color:#86EFAC}
+.adm-cost-blue{background:#E0F2FE;border-color:#BAE6FD}
+.adm-cost-icon{font-size:1.2rem;flex-shrink:0}
+.adm-cost-val{font-size:.84rem;font-weight:800;color:#032D60}
+.adm-cost-lbl{font-size:.58rem;color:#64748B;text-transform:uppercase;letter-spacing:.4px;font-weight:600;margin-top:1px}
+.adm-section{background:#fff;border:1.5px solid #DBEAFE;border-radius:10px;padding:11px 13px;margin-bottom:9px}
+.adm-section-hdr{font-size:.76rem;font-weight:800;color:#032D60;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+.adm-section-icon{font-size:.9rem}
+.adm-section-sub{margin-left:auto;font-size:.64rem;color:#94A3B8;font-weight:500;background:#F0F7FF;padding:2px 7px;border-radius:20px;border:1px solid #BFDBFE}
+.du-header{display:flex;align-items:center;gap:6px;padding:3px 6px;margin-bottom:3px}
+.du-th{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94A3B8}
+.du-row{display:flex;align-items:center;gap:6px;padding:6px;border-radius:7px;transition:background .15s}
+.du-row:hover{background:#F0F7FF}
+.du-rank{width:20px;font-size:.78rem;flex-shrink:0;text-align:center}
+.du-name{flex:1;font-size:.72rem;color:#032D60;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.du-clicks{width:40px;text-align:center;flex-shrink:0}
+.du-badge{background:#E0F2FE;color:#0176D3;border-radius:20px;padding:1px 6px;font-size:.66rem;font-weight:700}
+.du-bar-wrap{flex:1;display:flex;align-items:center;gap:5px;min-width:0}
+.du-bar{height:5px;border-radius:99px;min-width:2px;flex-shrink:0}
+.du-bar-label{font-size:.66rem;font-weight:700;color:#374151;white-space:nowrap;flex-shrink:0}
+.du-cost{width:52px;text-align:right;font-size:.7rem;font-weight:700;color:#15803D;flex-shrink:0}
+.adm-config-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.adm-cfg-item{background:#F8FAFC;border:1px solid #DBEAFE;border-radius:7px;padding:8px 10px}
+.adm-cfg-key{font-size:.6rem;text-transform:uppercase;letter-spacing:.5px;color:#94A3B8;font-weight:700;margin-bottom:3px}
+.adm-cfg-val{font-size:.72rem;font-weight:700;color:#032D60;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adm-notes{background:#F8FAFC;border:1px solid #DBEAFE;border-radius:9px;margin-bottom:9px}
+.adm-notes-summary{list-style:none;padding:9px 13px;font-size:.71rem;font-weight:700;color:#0176D3;cursor:pointer;border-radius:9px;transition:background .15s;display:flex;align-items:center}
+.adm-notes-summary::-webkit-details-marker{display:none}
+.adm-notes-summary::after{content:'▸';margin-left:auto;transition:transform .2s;font-size:.8rem;color:#94A3B8}
+details[open] .adm-notes-summary::after{transform:rotate(90deg)}
+.adm-notes-body{padding:0 13px 11px;font-size:.7rem;color:#64748B;line-height:1.7}
+.adm-notes-body p{margin-bottom:5px}
+.adm-notes-body strong{color:#032D60}
+.du-more{margin-top:2px}
+.du-more-summary{list-style:none;padding:6px 8px;font-size:.69rem;font-weight:700;color:#0176D3;cursor:pointer;border-radius:7px;transition:background .15s;display:flex;align-items:center}
+.du-more-summary::-webkit-details-marker{display:none}
+.du-more-summary:hover{background:#F0F7FF}
+details[open] .du-more-summary::before{content:'▾ '}
+.du-more-body{border-top:1px dashed #BFDBFE;padding-top:3px;margin-top:2px}
+.admin-loading{text-align:center;color:#94A3B8;font-size:.8rem;padding:24px}
+.clear-btn{width:100%;padding:9px;background:#FEF2F2;color:#DC2626;border:1.5px solid #FCA5A5;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer;margin-top:10px;transition:all .15s}
+.clear-btn:hover{background:#FEE2E2}
+/* About / tech modal */
+.tech-block{display:flex;flex-direction:column}
+.tech-item{display:flex;align-items:flex-start;gap:11px;padding:10px 0;border-bottom:1px solid #F0F7FF}
+.tech-item:last-child{border-bottom:none}
+.tech-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
+.tech-name{font-size:.78rem;font-weight:700;color:#032D60;margin-bottom:2px}
+.tech-desc{font-size:.7rem;color:#64748B;line-height:1.45}
+</style>
 </head>
 <body>
 
-<!-- ══ COMPACT TOP ═══════════════════════════════════════════════ -->
-<div class="top-bar">
-
-  <!-- Row 1: Logo + Title + Tech/Admin -->
-  <div class="top-row1">
-    <div class="top-logo">🤖</div>
-    <div class="top-title-block">
-      <div class="top-title">Dashboard AI Summarizer</div>
-      <div class="top-sub">Powered by Claude AI · Birdeye</div>
-    </div>
-    <div class="top-actions">
-      <button class="top-act-btn" onclick="showTechPanel()" title="About this tool">About</button>
-      <button class="top-act-btn" onclick="showAdminPanel()" title="Analytics & Cost">Admin</button>
-    </div>
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-logo">🤖</div>
+  <div class="hdr-info">
+    <div class="hdr-title">Dashboard AI Summarizer</div>
+    <div class="hdr-sub">Powered by Claude AI · Birdeye</div>
   </div>
-
-  <!-- Row 2: Status dot + Dashboard name -->
-  <div class="top-row2">
-    <div class="top-info" id="topInfo">
-      <div class="dot idle-dot" id="topDot"></div>
-      <span class="top-dash-name" id="topDashName">Initializing…</span>
-      <span class="top-badge" id="topBadge" style="display:none">✓</span>
-    </div>
+  <div class="hdr-btns">
+    <button class="hdr-btn" onclick="showTechPanel()">About</button>
+    <button class="hdr-btn" onclick="showAdminPanel()">Admin</button>
   </div>
-
-  <!-- Filter banner — slim -->
-  <div class="top-filter" id="filterBanner">
-    ⚠️ Filters changed — <strong>Refresh</strong> to update
-  </div>
-
 </div>
 
-<!-- ══ ANALYZE BAR — full width, centred, prominent ════════════ -->
-<div class="analyze-bar">
-  <button class="analyze-main-btn" id="analyzeBtn" disabled onclick="analyze(false)">
-    <span class="spark">✦</span> Analyze with AI
+<!-- CONTEXT CARD — dashboard name + metadata chips -->
+<div class="ctx-card" id="ctxCard">
+  <div class="ctx-name" id="ctxName">Dashboard</div>
+  <div class="ctx-chips" id="ctxChips">
+    <span class="ctx-chip chip-loading">Detecting…</span>
+  </div>
+</div>
+
+<!-- ANALYZE BUTTON — full width, always visible -->
+<div class="analyze-wrap">
+  <button class="analyze-btn-main" id="analyzeBtn" disabled onclick="analyze(false)">
+    <span class="btn-spark">✦</span> Analyze Dashboard
   </button>
 </div>
 
-<!-- ══ MAIN ══════════════════════════════════════════════════════ -->
+<!-- MAIN -->
 <div class="main">
+  <div class="status-slim idle" id="statusBar">
+    <div class="sdot"></div><span id="statusText">Initializing…</span>
+  </div>
 
-  <!-- Hidden legacy elements kept for JS compatibility -->
-  <div id="statusBar" style="display:none"><span id="statusText"></span></div>
-  <div id="dashCard"  style="display:none">
-    <div id="dashName"></div><div id="wbName"></div><div id="badge"></div>
+  <div class="filter-banner" id="filterBanner">
+    ⚠️ Filters changed — click <strong style="margin:0 3px">🔄 Refresh</strong> to update
   </div>
 
   <div class="progress" id="progressBox">
-    <div class="pmsg" id="pmsg">Starting…</div>
-    <div class="progress-bar-wrap"><div class="progress-bar"></div></div>
+    <div class="pmsg" id="pmsg">Analyzing…</div>
+    <div class="pbar-wrap"><div class="pbar"></div></div>
     <div class="psub" id="psub"></div>
     <div class="elapsed" id="elapsed"></div>
   </div>
 
   <div id="results" style="display:none">
-    <div class="tabs">
-      <button class="tab on" onclick="switchTab('sum',this)">📋 Summary</button>
+    <div class="results-header">
+      <div class="results-title">Executive Summary</div>
+      <div class="results-badge" id="resultsBadge">AI Generated</div>
     </div>
-    <div class="tabp on" id="tabSum">
-      <div class="sbody" id="sumBody"></div>
-      <div class="pc-section" id="perChartSection" style="display:none">
-        <div class="pc-title">Chart-Level Insights</div>
-        <div id="perChartBody"></div>
-      </div>
+    <div class="sbody" id="sumBody"></div>
+    <div class="pc-section" id="perChartSection" style="display:none">
+      <div class="pc-title">Chart-Level Insights</div>
+      <div id="perChartBody"></div>
     </div>
   </div>
+
+  <!-- hidden legacy elements for JS compatibility -->
+  <div id="dashCard" style="display:none"><div id="dashName"></div><div id="wbName"></div><div id="badge"></div></div>
 </div>
 
-<!-- ══ FOOTER ════════════════════════════════════════════════════ -->
+<!-- FOOTER -->
 <div class="footer">
   <div class="footer-left">
     <span class="footer-ts" id="tsText"></span>
@@ -441,28 +352,25 @@
   </div>
 </div>
 
-<!-- ══ PASSWORD MODAL ════════════════════════════════════════════ -->
+<!-- PASSWORD MODAL -->
 <div class="modal-overlay" id="adminPwdModal">
   <div class="modal pwd-modal">
     <div class="modal-body" style="padding:24px">
       <div class="pwd-icon">🔐</div>
       <div class="pwd-title">Admin Access</div>
       <div class="pwd-sub">Enter the admin password to view analytics & cost data</div>
-      <input class="pwd-input" type="password" id="adminPwdInput"
-        placeholder="Enter password"
-        onkeydown="if(event.key==='Enter')checkAdminPassword()"
-        autocomplete="off"/>
+      <input class="pwd-input" type="password" id="adminPwdInput" placeholder="Enter password" onkeydown="if(event.key==='Enter')checkAdminPassword()" autocomplete="off"/>
       <div class="pwd-error" id="pwdError">Incorrect password. Please try again.</div>
       <button class="pwd-submit" onclick="checkAdminPassword()">Unlock Admin Panel →</button>
     </div>
   </div>
 </div>
 
-<!-- ══ ADMIN MODAL ═══════════════════════════════════════════════ -->
+<!-- ADMIN MODAL -->
 <div class="modal-overlay" id="adminModal">
   <div class="modal">
     <div class="modal-head">
-      <h2>⚙️ Analytics &amp; Cost</h2>
+      <h2>⚙️ Analytics & Cost</h2>
       <button class="modal-close" onclick="closeAdminPanel()">✕</button>
     </div>
     <div class="modal-body" id="adminBody">
@@ -471,7 +379,7 @@
   </div>
 </div>
 
-<!-- ══ TECH MODAL ════════════════════════════════════════════════ -->
+<!-- ABOUT MODAL -->
 <div class="modal-overlay" id="techModal">
   <div class="modal" style="max-width:360px">
     <div class="modal-head">
@@ -479,54 +387,16 @@
       <button class="modal-close" onclick="closeTechPanel()">✕</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:.75rem;color:#64748b;line-height:1.6;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #f1f5f9">
-        This tool uses Claude AI to automatically read your Tableau dashboard data and generate an executive-ready summary — no manual analysis needed.
-        <br><br>
-        Below are the technologies powering it:
+      <p style="font-size:.75rem;color:#64748B;line-height:1.6;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #F0F7FF">
+        This tool uses Claude AI to automatically read your Tableau dashboard data and generate an executive-ready summary — no manual analysis needed.<br><br>Below are the technologies powering it:
       </p>
       <div class="tech-block">
-        <div class="tech-item">
-          <div class="tech-icon" style="background:#eff6ff;color:#2563eb">⚙️</div>
-          <div>
-            <div class="tech-name">Google Apps Script</div>
-            <div class="tech-desc">Backend — Tableau auth, Claude API calls, caching, Google Docs export</div>
-          </div>
-        </div>
-        <div class="tech-item">
-          <div class="tech-icon" style="background:#fef3c7;color:#d97706">📊</div>
-          <div>
-            <div class="tech-name">Tableau REST API v3.21</div>
-            <div class="tech-desc">Fetches dashboard PNG screenshot and underlying CSV data for AI analysis</div>
-          </div>
-        </div>
-        <div class="tech-item">
-          <div class="tech-icon" style="background:#f0fdf4;color:#15803d">🤖</div>
-          <div>
-            <div class="tech-name">Anthropic Claude AI</div>
-            <div class="tech-desc">claude-sonnet-4-6 vision model — reads dashboard image + CSV to generate executive briefings</div>
-          </div>
-        </div>
-        <div class="tech-item">
-          <div class="tech-icon" style="background:#E0F2FE;color:#0176D3">🌐</div>
-          <div>
-            <div class="tech-name">GitHub Pages</div>
-            <div class="tech-desc">Hosts the extension UI — required for Tableau's iframe security model</div>
-          </div>
-        </div>
-        <div class="tech-item">
-          <div class="tech-icon" style="background:#fff7ed;color:#ea580c">📋</div>
-          <div>
-            <div class="tech-name">Tableau Extensions API v1.12</div>
-            <div class="tech-desc">Auto-detects dashboard, listens for filter + parameter changes</div>
-          </div>
-        </div>
-        <div class="tech-item">
-          <div class="tech-icon" style="background:#eff6ff;color:#2563eb">📄</div>
-          <div>
-            <div class="tech-name">Google Docs</div>
-            <div class="tech-desc">One-click export of AI summaries as formatted, shareable documents</div>
-          </div>
-        </div>
+        <div class="tech-item"><div class="tech-icon" style="background:#E0F2FE;color:#0176D3">⚙️</div><div><div class="tech-name">Google Apps Script</div><div class="tech-desc">Backend — Tableau auth, Claude API calls, caching, Google Docs export</div></div></div>
+        <div class="tech-item"><div class="tech-icon" style="background:#FEF3C7;color:#D97706">📊</div><div><div class="tech-name">Tableau REST API v3.21</div><div class="tech-desc">Fetches dashboard screenshot and CSV data for AI analysis</div></div></div>
+        <div class="tech-item"><div class="tech-icon" style="background:#F0FDF4;color:#15803D">🤖</div><div><div class="tech-name">Anthropic Claude AI</div><div class="tech-desc">claude-sonnet-4-6 vision model — reads dashboard image + CSV to generate executive briefings</div></div></div>
+        <div class="tech-item"><div class="tech-icon" style="background:#E0F2FE;color:#0176D3">🌐</div><div><div class="tech-name">GitHub Pages</div><div class="tech-desc">Hosts the extension UI — required for Tableau's iframe security model</div></div></div>
+        <div class="tech-item"><div class="tech-icon" style="background:#FFF7ED;color:#C2410C">📋</div><div><div class="tech-name">Tableau Extensions API v1.12</div><div class="tech-desc">Auto-detects dashboard, listens for filter + parameter changes</div></div></div>
+        <div class="tech-item"><div class="tech-icon" style="background:#E0F2FE;color:#0176D3">📄</div><div><div class="tech-name">Google Docs</div><div class="tech-desc">One-click export of AI summaries as formatted, shareable documents</div></div></div>
       </div>
     </div>
   </div>
@@ -534,6 +404,7 @@
 
 
 <script>
+
   // ── Admin password (change this to your preferred password) ──────────────
   var ADMIN_PASSWORD        = 'birdeye@2026';
   var adminAuthenticated    = false;
@@ -790,9 +661,25 @@
         wbEl.textContent     = workbookName;
         wbEl.style.display   = workbookName ? 'block' : 'none';
         document.getElementById('badge').innerHTML        = '<div class="auto-badge">✅ Auto-detected from Tableau</div>';
-        document.getElementById('dashCard').style.display = 'block';
         document.getElementById('analyzeBtn').disabled    = false;
-        setStatus('success', 'Ready — click Analyze with AI');
+        setStatus('success', 'Ready — click Analyze Dashboard');
+
+        // Populate context card
+        var ctxCard = document.getElementById('ctxCard');
+        var ctxName = document.getElementById('ctxName');
+        var ctxChips = document.getElementById('ctxChips');
+        if (ctxCard) ctxCard.style.display = 'block';
+        if (ctxName) ctxName.textContent = dashboardName || 'Unknown Dashboard';
+        if (ctxChips) {
+          var now = new Date();
+          var mon = now.toLocaleString('en-US',{month:'short',year:'numeric'});
+          ctxChips.innerHTML =
+            '<span class="ctx-chip chip-date">📅 ' + mon + '</span>' +
+            (dashboardName
+              ? '<span class="ctx-chip chip-cached" id="ctxStatusChip">✓ Detected</span>'
+              : '<span class="ctx-chip chip-fresh">⚠ Not detected</span>') +
+            '<span class="ctx-chip chip-updated">Last Updated</span>';
+        }
 
         // REQ 3: start listening for filter changes
         registerFilterListeners();
@@ -1326,6 +1213,7 @@
   function closeTechPanel() {
     document.getElementById('techModal').classList.remove('show');
   }
+
 
 </script>
 </body>
