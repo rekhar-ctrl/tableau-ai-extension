@@ -277,6 +277,68 @@
     .tech-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0}
     .tech-name{font-size:.79rem;font-weight:700;color:#1e293b;margin-bottom:2px}
     .tech-desc{font-size:.71rem;color:#64748b;line-height:1.45}
+
+    /* ══ REDESIGNED ADMIN PANEL ══════════════════════════════════ */
+    /* Hero banner */
+    .adm-hero{display:flex;align-items:stretch;background:linear-gradient(135deg,#1e1b4b,#312e81,#1e40af);
+      border-radius:12px;margin-bottom:14px;overflow:hidden}
+    .adm-hero-item{flex:1;text-align:center;padding:14px 8px}
+    .adm-hero-div{width:1px;background:rgba(255,255,255,.15);margin:10px 0}
+    .adm-hero-icon{font-size:1.1rem;margin-bottom:4px}
+    .adm-hero-val{font-size:1.05rem;font-weight:800;color:#fff;letter-spacing:-.02em}
+    .adm-hero-lbl{font-size:.6rem;color:#93c5fd;text-transform:uppercase;letter-spacing:.6px;margin-top:2px;font-weight:600}
+
+    /* Cost breakdown cards */
+    .adm-cost-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+    .adm-cost-card{border-radius:10px;padding:10px 11px;display:flex;align-items:center;gap:9px;border:2px solid transparent}
+    .adm-cost-amber{background:#fffbeb;border-color:#fde68a}
+    .adm-cost-green{background:#f0fdf4;border-color:#86efac}
+    .adm-cost-blue{background:#eff6ff;border-color:#93c5fd}
+    .adm-cost-icon{font-size:1.3rem;flex-shrink:0}
+    .adm-cost-val{font-size:.88rem;font-weight:800;color:#1e293b;letter-spacing:-.01em}
+    .adm-cost-lbl{font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.4px;font-weight:600;margin-top:1px}
+
+    /* Section headers */
+    .adm-section{background:#fff;border:2px solid #e0e7ff;border-radius:12px;padding:12px 14px;margin-bottom:10px}
+    .adm-section-hdr{font-size:.78rem;font-weight:800;color:#1e293b;margin-bottom:10px;
+      display:flex;align-items:center;gap:7px}
+    .adm-section-icon{font-size:1rem}
+    .adm-section-sub{margin-left:auto;font-size:.66rem;color:#94a3b8;font-weight:500;background:#f0f4ff;
+      padding:2px 8px;border-radius:20px;border:1px solid #e0e7ff}
+
+    /* Dashboard usage rows */
+    .du-header{display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:4px}
+    .du-th{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8}
+    .du-row{display:flex;align-items:center;gap:6px;padding:7px 6px;border-radius:8px;transition:background .15s}
+    .du-row:hover{background:#f0f4ff}
+    .du-rank{width:20px;font-size:.8rem;flex-shrink:0;text-align:center}
+    .du-name{flex:1;font-size:.74rem;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+    .du-clicks{width:44px;text-align:center;flex-shrink:0}
+    .du-badge{background:#e0e7ff;color:#4f46e5;border-radius:20px;padding:2px 7px;font-size:.68rem;font-weight:700}
+    .du-bar-wrap{flex:1;position:relative;display:flex;align-items:center;gap:6px;min-width:0}
+    .du-bar{height:6px;border-radius:99px;min-width:2px;transition:width .4s;flex-shrink:0}
+    .du-bar-label{font-size:.68rem;font-weight:700;color:#374151;white-space:nowrap;flex-shrink:0}
+    .du-cost{width:56px;text-align:right;font-size:.72rem;font-weight:700;color:#15803d;flex-shrink:0}
+
+    /* Config grid */
+    .adm-config-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .adm-cfg-item{background:#f8fafc;border:1px solid #e0e7ff;border-radius:8px;padding:9px 11px}
+    .adm-cfg-key{font-size:.62rem;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;font-weight:700;margin-bottom:3px}
+    .adm-cfg-val{font-size:.74rem;font-weight:700;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    /* Notes collapsible */
+    .adm-notes{background:#f8fafc;border:1px solid #e0e7ff;border-radius:10px;margin-bottom:10px}
+    .adm-notes-summary{
+      padding:10px 14px;font-size:.73rem;font-weight:700;color:#4f46e5;
+      cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;
+    }
+    .adm-notes-summary::-webkit-details-marker{display:none}
+    .adm-notes-summary::after{content:'▸';margin-left:auto;transition:transform .2s;font-size:.8rem;color:#94a3b8}
+    details[open] .adm-notes-summary::after{transform:rotate(90deg)}
+    .adm-notes-body{padding:0 14px 12px;font-size:.71rem;color:#64748b;line-height:1.7}
+    .adm-notes-body p{margin-bottom:6px}
+    .adm-notes-body p:last-child{margin-bottom:0}
+    .adm-notes-body strong{color:#1e293b}
   </style>
 </head>
 <body>
@@ -928,77 +990,151 @@
         '</tr>';
     }).join('') || '<tr><td colspan="4" style="color:#9aa5b8;text-align:center">No data yet</td></tr>';
 
+    // ── Redesigned admin panel — stats top, tables middle, notes bottom ──
+    var savingsPercent = totalCost > 0 ? Math.round(totalSaved / (totalCost + totalSaved) * 100) : 0;
+
+    // Dashboard rows with cache bar
+    var dashRowsNew = (s.dashboards || []).slice(0, 8).map(function(d, i) {
+      var barColor = d.hitRate >= 60 ? '#22c55e' : d.hitRate >= 30 ? '#f59e0b' : '#ef4444';
+      var rank = ['🥇','🥈','🥉'][i] || (i+1+'.ˢᵗ');
+      return '<div class="du-row">' +
+        '<div class="du-rank">' + rank + '</div>' +
+        '<div class="du-name" title="' + d.name + '">' + d.name + '</div>' +
+        '<div class="du-clicks"><span class="du-badge">' + d.clicks + '</span></div>' +
+        '<div class="du-bar-wrap">' +
+          '<div class="du-bar" style="width:' + d.hitRate + '%;background:' + barColor + '"></div>' +
+          '<span class="du-bar-label">' + d.hitRate + '%</span>' +
+        '</div>' +
+        '<div class="du-cost">' + fmt(d.cost) + '</div>' +
+      '</div>';
+    }).join('') || '<div style="text-align:center;color:#94a3b8;padding:16px;font-size:.75rem">No dashboard data yet — click Analyze on any dashboard</div>';
+
+    // Monthly rows
+    var monthRowsNew = monthKeys.map(function(m) {
+      var mo = s.monthly[m];
+      var calls = mo.calls || 0;
+      var hits  = mo.cacheHits || 0;
+      var clicks = calls + hits;
+      var rate = clicks > 0 ? Math.round(hits / clicks * 100) : 0;
+      var barColor = rate >= 60 ? '#22c55e' : rate >= 30 ? '#f59e0b' : '#ef4444';
+      return '<div class="du-row">' +
+        '<div class="du-name" style="font-weight:600">' + m + '</div>' +
+        '<div class="du-clicks"><span class="du-badge">' + clicks + '</span></div>' +
+        '<div class="du-bar-wrap">' +
+          '<div class="du-bar" style="width:' + rate + '%;background:' + barColor + '"></div>' +
+          '<span class="du-bar-label">' + rate + '%</span>' +
+        '</div>' +
+        '<div class="du-cost">' + fmt(mo.cost || 0) + '</div>' +
+      '</div>';
+    }).join('') || '<div style="text-align:center;color:#94a3b8;padding:16px;font-size:.75rem">No monthly data yet</div>';
+
     var html =
-      // ── 4 stat cards ──
-      '<div class="stat-grid">' +
-        '<div class="stat-card">' +
-          '<div class="stat-val">' + totalClicks + '</div>' +
-          '<div class="stat-label">Total User Clicks</div>' +
+
+      // ═══ HERO BANNER — top summary ═══
+      '<div class="adm-hero">' +
+        '<div class="adm-hero-item">' +
+          '<div class="adm-hero-icon">👆</div>' +
+          '<div class="adm-hero-val">' + totalClicks + '</div>' +
+          '<div class="adm-hero-lbl">Total Clicks</div>' +
         '</div>' +
-        '<div class="stat-card violet">' +
-          '<div class="stat-val violet">' + fmtPct(hitRate) + '</div>' +
-          '<div class="stat-label">Cache Hit Rate</div>' +
+        '<div class="adm-hero-div"></div>' +
+        '<div class="adm-hero-item">' +
+          '<div class="adm-hero-icon">💰</div>' +
+          '<div class="adm-hero-val">' + fmt(totalCost) + '</div>' +
+          '<div class="adm-hero-lbl">API Spend</div>' +
         '</div>' +
-        '<div class="stat-card amber">' +
-          '<div class="stat-val amber">' + fmt(totalCost) + '</div>' +
-          '<div class="stat-label">Anthropic API Spend</div>' +
+        '<div class="adm-hero-div"></div>' +
+        '<div class="adm-hero-item">' +
+          '<div class="adm-hero-icon" style="color:#22c55e">⏱</div>' +
+          '<div class="adm-hero-val" style="color:#22c55e">' + timeSaved + '</div>' +
+          '<div class="adm-hero-lbl">Time Saved</div>' +
         '</div>' +
-        '<div class="stat-card green">' +
-          '<div class="stat-val green">' + timeSaved + '</div>' +
-          '<div class="stat-label">Est. Time Saved</div>' +
-        '</div>' +
-        '<div class="stat-card">' +
-          '<div class="stat-val">' + fmt(avgCost) + '</div>' +
-          '<div class="stat-label">Cost per Fresh Click</div>' +
-        '</div>' +
-        '<div class="stat-card green">' +
-          '<div class="stat-val green">$0.0000</div>' +
-          '<div class="stat-label">Cost per Cached Click</div>' +
+        '<div class="adm-hero-div"></div>' +
+        '<div class="adm-hero-item">' +
+          '<div class="adm-hero-icon" style="color:#a855f7">⚡</div>' +
+          '<div class="adm-hero-val" style="color:#a855f7">' + fmtPct(hitRate) + '</div>' +
+          '<div class="adm-hero-lbl">Cache Rate</div>' +
         '</div>' +
       '</div>' +
 
-      // ── Time saved explanation ──
-      '<div style="background:#f0fdf4;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:.72rem;color:#166534;line-height:1.8">' +
-        '<div style="font-weight:700;margin-bottom:4px;font-size:.75rem">ℹ️ How these numbers are calculated</div>' +
-        '<div>⏱ <strong>Est. Time Saved (' + timeSaved + ')</strong> — assumes each AI analysis replaces ~15 min of manual dashboard review. Formula: ' + totalClicks + ' clicks × 15 min = ' + minsSaved + ' min total.</div>' +
-        '<div>💰 <strong>Cost per Fresh Click (' + fmt(avgCost) + ')</strong> — actual Anthropic API charge per summary generated, based on token usage (input + output). Averaged across all ' + (s.totalCalls || 0) + ' fresh analyses.</div>' +
-        '<div>⚡ <strong>Cost per Cached Click ($0.0000)</strong> — when the same dashboard + filter state was already analyzed within 12 hours, the stored result is returned instantly at zero API cost.</div>' +
+      // ═══ COST BREAKDOWN CARDS ═══
+      '<div class="adm-cost-row">' +
+        '<div class="adm-cost-card adm-cost-amber">' +
+          '<div class="adm-cost-icon">🔥</div>' +
+          '<div class="adm-cost-info">' +
+            '<div class="adm-cost-val">' + fmt(avgCost) + '</div>' +
+            '<div class="adm-cost-lbl">Cost / Fresh Click</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="adm-cost-card adm-cost-green">' +
+          '<div class="adm-cost-icon">♻️</div>' +
+          '<div class="adm-cost-info">' +
+            '<div class="adm-cost-val">$0.0000</div>' +
+            '<div class="adm-cost-lbl">Cost / Cached Click</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="adm-cost-card adm-cost-blue">' +
+          '<div class="adm-cost-icon">🎯</div>' +
+          '<div class="adm-cost-info">' +
+            '<div class="adm-cost-val">' + fmt(totalSaved) + '</div>' +
+            '<div class="adm-cost-lbl">Saved by Cache</div>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
 
-      // ── Per-dashboard breakdown ──
-      '<div class="admin-section">' +
-        '<h3>Dashboard Usage</h3>' +
-        '<table class="admin-table">' +
-          '<thead><tr><th>Dashboard</th><th style="text-align:center">Clicks</th><th style="text-align:center">Cache %</th><th style="text-align:right">Cost</th></tr></thead>' +
-          '<tbody>' + dashRows + '</tbody>' +
-        '</table>' +
+      // ═══ DASHBOARD USAGE ═══
+      '<div class="adm-section">' +
+        '<div class="adm-section-hdr">' +
+          '<span class="adm-section-icon">📊</span> Dashboard Usage' +
+          '<span class="adm-section-sub">' + (s.dashboards || []).length + ' dashboards</span>' +
+        '</div>' +
+        '<div class="du-header">' +
+          '<div class="du-rank"></div>' +
+          '<div class="du-name du-th">Dashboard</div>' +
+          '<div class="du-clicks du-th">Clicks</div>' +
+          '<div class="du-bar-wrap du-th">Cache Hit Rate</div>' +
+          '<div class="du-cost du-th">Cost</div>' +
+        '</div>' +
+        dashRowsNew +
       '</div>' +
 
-      // ── Monthly breakdown ──
-      '<div class="admin-section">' +
-        '<h3>Monthly Breakdown</h3>' +
-        '<table class="admin-table">' +
-          '<thead><tr><th>Month</th><th style="text-align:center">Clicks</th><th style="text-align:center">Cache %</th><th style="text-align:right">Cost</th></tr></thead>' +
-          '<tbody>' + monthRows + '</tbody>' +
-        '</table>' +
+      // ═══ MONTHLY BREAKDOWN ═══
+      '<div class="adm-section">' +
+        '<div class="adm-section-hdr">' +
+          '<span class="adm-section-icon">📅</span> Monthly Trend' +
+          '<span class="adm-section-sub">Last ' + monthKeys.length + ' months</span>' +
+        '</div>' +
+        '<div class="du-header">' +
+          '<div class="du-name du-th">Month</div>' +
+          '<div class="du-clicks du-th">Clicks</div>' +
+          '<div class="du-bar-wrap du-th">Cache Hit Rate</div>' +
+          '<div class="du-cost du-th">Cost</div>' +
+        '</div>' +
+        monthRowsNew +
       '</div>' +
 
-      // ── Configuration ──
-      '<div class="admin-section">' +
-        '<h3>Configuration</h3>' +
-        '<div class="config-row"><span class="config-key">Model</span><span class="config-val">' + (s.config && s.config.model || 'claude-sonnet-4-6') + '</span></div>' +
-        '<div class="config-row"><span class="config-key">Cache TTL</span><span class="config-val">' + ((s.config && s.config.summaryTtlHours) || 12) + 'h — summaries reused for 12 hours</span></div>' +
-        '<div class="config-row"><span class="config-key">Anthropic cost / fresh click</span><span class="config-val">' + fmt(avgCost) + ' avg</span></div>' +
-        '<div class="config-row"><span class="config-key">Anthropic cost / cached click</span><span class="config-val">$0.0000 (served from cache)</span></div>' +
-        (s.lastCall ? '<div class="config-row"><span class="config-key">Last analysis</span><span class="config-val" style="font-family:inherit">' + s.lastCall.slice(0,16).replace('T',' ') + ' UTC</span></div>' : '') +
-        (s.lastView ? '<div class="config-row"><span class="config-key">Last dashboard</span><span class="config-val" style="font-family:inherit;font-size:.72rem">' + s.lastView + '</span></div>' : '') +
+      // ═══ CONFIGURATION ═══
+      '<div class="adm-section">' +
+        '<div class="adm-section-hdr"><span class="adm-section-icon">⚙️</span> Configuration</div>' +
+        '<div class="adm-config-grid">' +
+          '<div class="adm-cfg-item"><div class="adm-cfg-key">AI Model</div><div class="adm-cfg-val">' + (s.config && s.config.model || 'claude-sonnet-4-6') + '</div></div>' +
+          '<div class="adm-cfg-item"><div class="adm-cfg-key">Cache TTL</div><div class="adm-cfg-val">' + ((s.config && s.config.summaryTtlHours) || 12) + ' hours</div></div>' +
+          '<div class="adm-cfg-item"><div class="adm-cfg-key">Last Analysis</div><div class="adm-cfg-val">' + (s.lastCall ? s.lastCall.slice(0,16).replace('T',' ') + ' UTC' : '—') + '</div></div>' +
+          '<div class="adm-cfg-item"><div class="adm-cfg-key">Last Dashboard</div><div class="adm-cfg-val">' + (s.lastView || '—') + '</div></div>' +
+        '</div>' +
       '</div>' +
 
+      // ═══ NOTES — bottom ═══
+      '<details class="adm-notes">' +
+        '<summary class="adm-notes-summary">ℹ️ How these numbers are calculated</summary>' +
+        '<div class="adm-notes-body">' +
+          '<p>⏱ <strong>Est. Time Saved (' + timeSaved + ')</strong> — each AI analysis replaces ~15 min of manual dashboard review. ' + totalClicks + ' clicks × 15 min = ' + minsSaved + ' min total.</p>' +
+          '<p>💰 <strong>Cost per Fresh Click (' + fmt(avgCost) + ')</strong> — actual Anthropic API charge per summary, based on token usage. Averaged across all ' + (s.totalCalls || 0) + ' fresh analyses.</p>' +
+          '<p>⚡ <strong>Cost per Cached Click ($0.0000)</strong> — same dashboard + filter within 12h returns stored result instantly at zero cost.</p>' +
+          '<p>💡 <strong>Costs shown are Anthropic API charges only.</strong> Tableau Server, GitHub Pages and Google Apps Script run on existing licenses or free tiers.</p>' +
+        '</div>' +
+      '</details>' +
 
-      '<div style="font-size:.68rem;color:#9aa5b8;margin-top:10px;padding:8px;background:#f8f9fc;border-radius:6px;line-height:1.5">' +
-      '💡 Costs shown are <strong style=\"color:#374151\">Anthropic API charges only</strong> (claude-sonnet-4-6). ' +
-      'Tableau Server, GitHub Pages and Google Apps Script run on existing licenses or free tiers.' +
-      '</div>' +
       '<button class="clear-btn" onclick="clearAdminStats()">🗑 Reset All Stats</button>';
 
     document.getElementById('adminBody').innerHTML = html;
