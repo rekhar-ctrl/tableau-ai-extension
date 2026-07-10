@@ -339,6 +339,19 @@
     .adm-notes-body p{margin-bottom:6px}
     .adm-notes-body p:last-child{margin-bottom:0}
     .adm-notes-body strong{color:#1e293b}
+
+    /* Dashboard "show more" toggle */
+    .du-more{margin-top:2px}
+    .du-more-summary{
+      list-style:none;padding:7px 8px;font-size:.71rem;font-weight:700;
+      color:#4f46e5;cursor:pointer;border-radius:8px;transition:background .15s;
+      display:flex;align-items:center;gap:5px;
+    }
+    .du-more-summary::-webkit-details-marker{display:none}
+    .du-more-summary:hover{background:#f0f4ff}
+    details[open] .du-more-summary{color:#374151}
+    details[open] .du-more-summary::before{content:'▾ '}
+    .du-more-body{border-top:1px dashed #e0e7ff;padding-top:4px;margin-top:2px}
   </style>
 </head>
 <body>
@@ -1029,10 +1042,13 @@
     // ── Redesigned admin panel — stats top, tables middle, notes bottom ──
     var savingsPercent = totalCost > 0 ? Math.round(totalSaved / (totalCost + totalSaved) * 100) : 0;
 
-    // Dashboard rows with cache bar
-    var dashRowsNew = (s.dashboards || []).slice(0, 8).map(function(d, i) {
+    // Dashboard rows — top 5 visible, rest hidden under toggle
+    var allDashboards = s.dashboards || [];
+    var TOP = 5;
+
+    function makeDashRow(d, i) {
       var barColor = d.hitRate >= 60 ? '#22c55e' : d.hitRate >= 30 ? '#f59e0b' : '#ef4444';
-      var rank = ['🥇','🥈','🥉'][i] || (i+1+'.ˢᵗ');
+      var rank = ['🥇','🥈','🥉'][i] || ((i + 1) + '.');
       return '<div class="du-row">' +
         '<div class="du-rank">' + rank + '</div>' +
         '<div class="du-name" title="' + d.name + '">' + d.name + '</div>' +
@@ -1043,7 +1059,25 @@
         '</div>' +
         '<div class="du-cost">' + fmt(d.cost) + '</div>' +
       '</div>';
-    }).join('') || '<div style="text-align:center;color:#94a3b8;padding:16px;font-size:.75rem">No dashboard data yet — click Analyze on any dashboard</div>';
+    }
+
+    var topRows      = allDashboards.slice(0, TOP).map(makeDashRow).join('');
+    var remainingRows = allDashboards.slice(TOP).map(function(d, i) { return makeDashRow(d, i + TOP); }).join('');
+    var hiddenCount  = allDashboards.length - TOP;
+
+    var dashRowsNew = topRows ||
+      '<div style="text-align:center;color:#94a3b8;padding:16px;font-size:.75rem">No dashboard data yet — click Analyze on any dashboard</div>';
+
+    // Add collapsible section for remaining dashboards
+    if (hiddenCount > 0) {
+      dashRowsNew +=
+        '<details class="du-more">' +
+          '<summary class="du-more-summary">' +
+            '▸ Show ' + hiddenCount + ' more dashboard' + (hiddenCount > 1 ? 's' : '') +
+          '</summary>' +
+          '<div class="du-more-body">' + remainingRows + '</div>' +
+        '</details>';
+    }
 
     // Monthly rows
     var monthRowsNew = monthKeys.map(function(m) {
