@@ -40,7 +40,7 @@
       transition:background .15s;white-space:nowrap;letter-spacing:.02em;
     }
     .top-act-btn:hover{background:rgba(255,255,255,.28)}
-    .top-row2{display:flex;align-items:center;gap:8px;padding:0 10px 8px}
+    .top-row2{display:flex;align-items:center;gap:7px;padding:0 10px 6px}
     .top-info{
       flex:1;display:flex;align-items:center;gap:6px;
       background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);
@@ -63,6 +63,30 @@
     .top-analyze-btn:hover:not(:disabled){background:rgba(255,255,255,.28);border-color:rgba(255,255,255,.6)}
     .top-analyze-btn:disabled{opacity:.4;cursor:not-allowed}
     .top-analyze-btn.loading{background:rgba(0,161,224,.3);border-color:rgba(0,161,224,.6)}
+
+    /* Full-width prominent Analyze button below top bar */
+    .analyze-bar{
+      background:#fff;border-bottom:2px solid #DBEAFE;
+      padding:8px 12px;flex-shrink:0;
+    }
+    .analyze-main-btn{
+      width:100%;padding:12px;border:none;border-radius:10px;
+      background:linear-gradient(135deg,#032D60 0%,#0176D3 60%,#00A1E0 100%);
+      color:#fff;font-size:.95rem;font-weight:800;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;gap:9px;
+      box-shadow:0 4px 14px rgba(1,118,211,.35);
+      transition:all .22s;letter-spacing:.01em;
+    }
+    .analyze-main-btn:hover:not(:disabled){
+      box-shadow:0 6px 20px rgba(1,118,211,.5);transform:translateY(-2px);
+    }
+    .analyze-main-btn:active:not(:disabled){transform:translateY(0)}
+    .analyze-main-btn:disabled{
+      opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;
+      background:linear-gradient(135deg,#94A3B8,#CBD5E1);
+    }
+    .analyze-main-btn .spark{font-size:1.05rem;animation:sparkle 2.5s infinite}
+    @keyframes sparkle{0%,100%{transform:scale(1) rotate(0deg)}50%{transform:scale(1.25) rotate(18deg)}}
     .top-filter{
       display:none;background:rgba(251,191,36,.15);border-top:1px solid rgba(251,191,36,.35);
       padding:4px 12px;font-size:.68rem;color:#FEF08A;font-weight:600;
@@ -351,16 +375,13 @@
     </div>
   </div>
 
-  <!-- Row 2: Status dot + Dashboard name + Analyze button -->
+  <!-- Row 2: Status dot + Dashboard name -->
   <div class="top-row2">
     <div class="top-info" id="topInfo">
       <div class="dot idle-dot" id="topDot"></div>
       <span class="top-dash-name" id="topDashName">Initializing…</span>
       <span class="top-badge" id="topBadge" style="display:none">✓</span>
     </div>
-    <button class="top-analyze-btn" id="analyzeBtn" disabled onclick="analyze(false)">
-      <span class="btn-spark">✦</span> Analyze
-    </button>
   </div>
 
   <!-- Filter banner — slim -->
@@ -368,6 +389,13 @@
     ⚠️ Filters changed — <strong>Refresh</strong> to update
   </div>
 
+</div>
+
+<!-- ══ ANALYZE BAR — full width, centred, prominent ════════════ -->
+<div class="analyze-bar">
+  <button class="analyze-main-btn" id="analyzeBtn" disabled onclick="analyze(false)">
+    <span class="spark">✦</span> Analyze with AI
+  </button>
 </div>
 
 <!-- ══ MAIN ══════════════════════════════════════════════════════ -->
