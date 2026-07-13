@@ -115,18 +115,19 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#F0F5FB;color:#0A1F4
 /* ══ RESULTS WRAPPER ═════════════════════════════════════════ */
 .results-header{
   background:#fff;border:1px solid #E8EDF5;border-radius:9px;
-  padding:7px 11px;margin-bottom:10px;
+  padding:9px 12px;margin-bottom:10px;
   border-left:3px solid #7C3AED;
-  display:flex;align-items:center;gap:8px;
 }
-.rh-top{display:flex;align-items:center;gap:7px;flex:1}
+.rh-top{display:flex;align-items:center;gap:7px}
 .rh-icon{font-size:1rem;flex-shrink:0}
-.rh-title{font-size:.78rem;font-weight:800;color:#032D60;flex:1}
+.rh-title{font-size:.82rem;font-weight:800;color:#032D60}
 .rh-ai-badge{
-  background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;
-  border-radius:12px;padding:2px 7px;font-size:.62rem;font-weight:700;flex-shrink:0;
+  display:inline-flex;align-items:center;gap:4px;
+  background:#F0FDF4;color:#15803D;border:1px solid #86EFAC;
+  border-radius:20px;padding:3px 10px;font-size:.68rem;font-weight:700;
 }
-.rh-sub{display:flex;align-items:center;gap:6px;font-size:.64rem;color:#94A3B8;flex-shrink:0}
+.rh-ai-badge.fresh{background:#F5F3FF;color:#7C3AED;border-color:#DDD6FE}
+.rh-sub{font-size:.68rem;color:#94A3B8;line-height:1.4}
 .rh-dot{width:3px;height:3px;border-radius:50%;background:#CBD5E1}
 
 /* ══ SUMMARY SECTIONS ════════════════════════════════════════ */
@@ -334,10 +335,12 @@ details[open] .du-more-summary::before{content:'▾ '}
 
   <div id="results" style="display:none">
     <div class="results-header">
-      <span class="rh-icon">🧠</span>
-      <span class="rh-title">Executive Summary</span>
-      <span class="rh-sub" id="rhSubText"></span>
-      <span class="rh-ai-badge" id="resultsBadge">AI Generated</span>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+        <span class="rh-icon">🧠</span>
+        <span class="rh-title">Executive Summary</span>
+      </div>
+      <div class="rh-sub" style="padding-left:2px;margin-bottom:4px">AI-generated insights for the current dashboard</div>
+      <span class="rh-ai-badge" id="resultsBadge">⚡ Loaded from Cache</span>
     </div>
     <div class="sbody" id="sumBody"></div>
     <div class="pc-section" id="perChartSection" style="display:none">
