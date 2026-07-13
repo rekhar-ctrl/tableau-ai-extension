@@ -707,8 +707,7 @@ details[open] .du-more-summary::before{content:'▾ '}
             '<span class="ctx-chip chip-date">📅 ' + mon + '</span>' +
             (dashboardName
               ? '<span class="ctx-chip chip-cached" id="ctxStatusChip">✅ Detected</span>'
-              : '<span class="ctx-chip chip-fresh">⚠ Not detected</span>') +
-            '<span class="ctx-chip chip-updated" id="ctxUpdatedChip">🕒 Loading…</span>';
+              : '<span class="ctx-chip chip-fresh">⚠ Not detected</span>');
         }
 
         // REQ 3: start listening for filter changes
@@ -860,8 +859,13 @@ details[open] .du-more-summary::before{content:'▾ '}
     document.getElementById('analyzeBtn').disabled   = false;
 
     var ts = document.getElementById('tsText');
-    if (ts) ts.textContent = data.generatedAt
-      ? '🕐 ' + data.generatedAt + (data.fromCache ? ' (cached)' : ' — just now') : '';
+    if (ts) {
+      var timeStr = data.generatedAt || '';
+      var rel     = timeStr ? relativeTime(timeStr) : 'just now';
+      ts.innerHTML = data.fromCache
+        ? '<span style="color:#0176D3;font-weight:600">🕐 ' + timeStr + '</span> &nbsp;·&nbsp; ' + rel
+        : '<span style="color:#15803D;font-weight:600">✦ ' + timeStr + '</span> &nbsp;·&nbsp; just now';
+    }
 
     var cl = document.getElementById('cacheLabel');
     if (cl) cl.innerHTML = data.fromCache ? '<span class="cbadge">⚡ Cached</span>' : '';
