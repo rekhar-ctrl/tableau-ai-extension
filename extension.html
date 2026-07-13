@@ -114,18 +114,19 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#F0F5FB;color:#0A1F4
 
 /* ══ RESULTS WRAPPER ═════════════════════════════════════════ */
 .results-header{
-  background:#fff;border:1px solid #E8EDF5;border-radius:12px;
-  padding:12px 14px;margin-bottom:12px;
+  background:#fff;border:1px solid #E8EDF5;border-radius:9px;
+  padding:7px 11px;margin-bottom:10px;
   border-left:3px solid #7C3AED;
+  display:flex;align-items:center;gap:8px;
 }
-.rh-top{display:flex;align-items:center;gap:9px;margin-bottom:5px}
-.rh-icon{font-size:1.3rem;flex-shrink:0}
-.rh-title{font-size:.88rem;font-weight:800;color:#032D60;flex:1}
+.rh-top{display:flex;align-items:center;gap:7px;flex:1}
+.rh-icon{font-size:1rem;flex-shrink:0}
+.rh-title{font-size:.78rem;font-weight:800;color:#032D60;flex:1}
 .rh-ai-badge{
   background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;
-  border-radius:12px;padding:2px 8px;font-size:.63rem;font-weight:700;flex-shrink:0;
+  border-radius:12px;padding:2px 7px;font-size:.62rem;font-weight:700;flex-shrink:0;
 }
-.rh-sub{display:flex;align-items:center;gap:8px;font-size:.68rem;color:#94A3B8;padding-left:2px}
+.rh-sub{display:flex;align-items:center;gap:6px;font-size:.64rem;color:#94A3B8;flex-shrink:0}
 .rh-dot{width:3px;height:3px;border-radius:50%;background:#CBD5E1}
 
 /* ══ SUMMARY SECTIONS ════════════════════════════════════════ */
@@ -336,13 +337,13 @@ details[open] .du-more-summary::before{content:'▾ '}
       <div class="rh-top">
         <span class="rh-icon">🧠</span>
         <span class="rh-title">Executive Summary</span>
-        <span class="rh-ai-badge" id="resultsBadge">AI Generated</span>
       </div>
       <div class="rh-sub">
-        <span id="rhSubText">Ready</span>
-        <span class="rh-dot"></span>
+        <span id="rhSubText"></span>
+        <span class="rh-dot" id="rhDotSep" style="display:none"></span>
         <span id="rhTimeText"></span>
       </div>
+      <span class="rh-ai-badge" id="resultsBadge">AI Generated</span>
     </div>
     <div class="sbody" id="sumBody"></div>
     <div class="pc-section" id="perChartSection" style="display:none">
