@@ -44,11 +44,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#F0F5FB;color:#0A1F4
   display:inline-flex;align-items:center;gap:3px;
   font-size:.63rem;font-weight:600;padding:2px 8px;border-radius:20px;
 }
-.chip-date{background:#E0F2FE;color:#0369A1;border:1px solid #BAE6FD}
-.chip-cached{background:#DCFCE7;color:#15803D;border:1px solid #86EFAC}
-.chip-fresh{background:#FFF7ED;color:#C2410C;border:1px solid #FED7AA}
-.chip-loading{background:#EEF2FF;color:#4338CA;border:1px solid #C7D2FE}
+.chip-date{background:#EEF2FF;color:#4338CA;border:1px solid #C7D2FE}
+.chip-cached{background:#F0FDF4;color:#15803D;border:1px solid #86EFAC}
+.chip-fresh{background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE}
+.chip-loading{background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;animation:chipPulse 1.5s infinite}
 .chip-updated{background:#F8FAFC;color:#64748B;border:1px solid #E2E8F0}
+@keyframes chipPulse{0%,100%{opacity:1}50%{opacity:.5}}
 
 /* ══ STATUS (slim, inside main) ══════════════════════════════ */
 .status-slim{
@@ -75,9 +76,9 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#F0F5FB;color:#0A1F4
 .filter-banner.show{display:flex}
 
 /* ══ ANALYZE BUTTON ══════════════════════════════════════════ */
-.analyze-wrap{padding:8px 14px;background:#fff;border-bottom:2px solid #DBEAFE;flex-shrink:0}
+.analyze-wrap{padding:10px 14px;background:#fff;border-bottom:2px solid #DBEAFE;flex-shrink:0;display:flex;justify-content:center}
 .analyze-btn-main{
-  width:100%;padding:13px;border:none;border-radius:10px;
+  width:68%;padding:12px;border:none;border-radius:10px;
   background:linear-gradient(135deg,#0176D3 0%,#00A1E0 100%);
   color:#fff;font-size:.95rem;font-weight:800;cursor:pointer;
   display:flex;align-items:center;justify-content:center;gap:9px;
@@ -113,11 +114,19 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#F0F5FB;color:#0A1F4
 
 /* ══ RESULTS WRAPPER ═════════════════════════════════════════ */
 .results-header{
-  display:flex;align-items:center;gap:8px;
-  padding-bottom:6px;border-bottom:2px solid #DBEAFE;margin-bottom:10px;
+  background:#fff;border:1px solid #E8EDF5;border-radius:12px;
+  padding:12px 14px;margin-bottom:12px;
+  border-left:3px solid #7C3AED;
 }
-.results-title{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#0176D3;flex:1}
-.results-badge{font-size:.62rem;font-weight:700;background:#E0F2FE;color:#0176D3;border:1px solid #BAE6FD;border-radius:20px;padding:2px 8px}
+.rh-top{display:flex;align-items:center;gap:9px;margin-bottom:5px}
+.rh-icon{font-size:1.3rem;flex-shrink:0}
+.rh-title{font-size:.88rem;font-weight:800;color:#032D60;flex:1}
+.rh-ai-badge{
+  background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;
+  border-radius:12px;padding:2px 8px;font-size:.63rem;font-weight:700;flex-shrink:0;
+}
+.rh-sub{display:flex;align-items:center;gap:8px;font-size:.68rem;color:#94A3B8;padding-left:2px}
+.rh-dot{width:3px;height:3px;border-radius:50%;background:#CBD5E1}
 
 /* ══ SUMMARY SECTIONS ════════════════════════════════════════ */
 .sbody{font-size:.78rem;line-height:1.75;color:#334155}
@@ -125,15 +134,16 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#F0F5FB;color:#0A1F4
 /* Section header — executive style */
 .sbody h2{
   font-size:.71rem;font-weight:800;color:#032D60;
-  margin:14px 0 6px;padding:6px 10px;
-  display:flex;align-items:center;gap:8px;
-  text-transform:uppercase;letter-spacing:.6px;
-  background:#fff;border:1px solid #E2E8F0;
+  margin:14px 0 6px;padding:7px 11px;
+  display:flex;align-items:center;gap:7px;
+  text-transform:uppercase;letter-spacing:.5px;
+  background:#fff;border:1px solid #E8EDF5;
   border-left:3px solid #0176D3;
   border-radius:0 8px 8px 0;
-  box-shadow:0 1px 4px rgba(1,118,211,.07);
+  box-shadow:0 1px 3px rgba(1,118,211,.06);
 }
 .sbody h2:first-child{margin-top:0}
+.sbody h2::before{content:'📌';font-size:.75rem;flex-shrink:0}
 .sbody p{margin-bottom:8px}
 .sbody ul{margin:4px 0 8px 0;list-style:none;display:flex;flex-direction:column;gap:5px}
 .sbody li{
@@ -325,8 +335,16 @@ details[open] .du-more-summary::before{content:'▾ '}
 
   <div id="results" style="display:none">
     <div class="results-header">
-      <div class="results-title">Executive Summary</div>
-      <div class="results-badge" id="resultsBadge">AI Generated</div>
+      <div class="rh-top">
+        <span class="rh-icon">🧠</span>
+        <span class="rh-title">Executive Summary</span>
+        <span class="rh-ai-badge" id="resultsBadge">AI Generated</span>
+      </div>
+      <div class="rh-sub">
+        <span id="rhSubText">Ready</span>
+        <span class="rh-dot"></span>
+        <span id="rhTimeText"></span>
+      </div>
     </div>
     <div class="sbody" id="sumBody"></div>
     <div class="pc-section" id="perChartSection" style="display:none">
@@ -403,6 +421,19 @@ details[open] .du-more-summary::before{content:'▾ '}
 
 
 <script>
+
+  // ── Relative time helper ──────────────────────────────────────────────────
+  function relativeTime(isoStr) {
+    if (!isoStr) return 'just now';
+    try {
+      var then = new Date(isoStr.replace(' ','T').replace(' UTC','Z'));
+      var diff = Math.floor((Date.now() - then) / 1000);
+      if (diff < 10)   return 'just now';
+      if (diff < 60)   return diff + ' sec ago';
+      if (diff < 3600) return Math.floor(diff/60) + ' min ago';
+      return Math.floor(diff/3600) + 'h ago';
+    } catch(e) { return 'just now'; }
+  }
 
   // ── Admin password (change this to your preferred password) ──────────────
   var ADMIN_PASSWORD        = 'birdeye@2026';
@@ -675,9 +706,9 @@ details[open] .du-more-summary::before{content:'▾ '}
           ctxChips.innerHTML =
             '<span class="ctx-chip chip-date">📅 ' + mon + '</span>' +
             (dashboardName
-              ? '<span class="ctx-chip chip-cached" id="ctxStatusChip">✓ Detected</span>'
+              ? '<span class="ctx-chip chip-cached" id="ctxStatusChip">✅ Detected</span>'
               : '<span class="ctx-chip chip-fresh">⚠ Not detected</span>') +
-            '<span class="ctx-chip chip-updated">Last Updated</span>';
+            '<span class="ctx-chip chip-updated" id="ctxUpdatedChip">🕒 Loading…</span>';
         }
 
         // REQ 3: start listening for filter changes
