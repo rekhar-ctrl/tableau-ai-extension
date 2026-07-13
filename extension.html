@@ -871,7 +871,7 @@ details[open] .du-more-summary::before{content:'▾ '}
     }
 
     var cl = document.getElementById('cacheLabel');
-    if (cl) cl.innerHTML = data.fromCache ? '<span class="cbadge">⚡ Cached</span>' : '';
+    if (cl) cl.innerHTML = ''; // cache status shown in Executive Summary card only
 
     document.getElementById('refreshBtn').style.display = 'inline-block';
     document.getElementById('exportBtn').style.display  = 'inline-block';
@@ -879,7 +879,7 @@ details[open] .du-more-summary::before{content:'▾ '}
     var exportMd = mainMd;
     if (split.perChart) exportMd += '\n\n' + split.perChart;
     exportData = { summary: exportMd, generatedAt: data.generatedAt || '' };
-    setStatus('success', data.fromCache ? 'Loaded from cache ⚡' : 'Analysis complete ✓');
+    setStatus('success', 'Analysis complete ✓');
 
     document.querySelectorAll('.tab') .forEach(function(t,i){ t.classList.toggle('on',i===0); });
     document.querySelectorAll('.tabp').forEach(function(p,i){ p.classList.toggle('on',i===0); });
