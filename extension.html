@@ -334,15 +334,9 @@ details[open] .du-more-summary::before{content:'▾ '}
 
   <div id="results" style="display:none">
     <div class="results-header">
-      <div class="rh-top">
-        <span class="rh-icon">🧠</span>
-        <span class="rh-title">Executive Summary</span>
-      </div>
-      <div class="rh-sub">
-        <span id="rhSubText"></span>
-        <span class="rh-dot" id="rhDotSep" style="display:none"></span>
-        <span id="rhTimeText"></span>
-      </div>
+      <span class="rh-icon">🧠</span>
+      <span class="rh-title">Executive Summary</span>
+      <span class="rh-sub" id="rhSubText"></span>
       <span class="rh-ai-badge" id="resultsBadge">AI Generated</span>
     </div>
     <div class="sbody" id="sumBody"></div>
@@ -423,15 +417,21 @@ details[open] .du-more-summary::before{content:'▾ '}
 
   // ── Relative time helper ──────────────────────────────────────────────────
   function relativeTime(isoStr) {
-    if (!isoStr) return 'just now';
+    if (!isoStr) return '';
     try {
-      var then = new Date(isoStr.replace(' ','T').replace(' UTC','Z'));
+      // Handle formats: "13 Jul 2026, 16:16" or ISO strings
+      var clean = isoStr
+        .replace(/^(\d{1,2}) ([A-Za-z]{3}) (\d{4}), (\d{2}:\d{2})$/, '$2 $1 $3 $4')
+        .replace(' UTC','');
+      var then = new Date(clean);
+      if (isNaN(then.getTime())) return '';
       var diff = Math.floor((Date.now() - then) / 1000);
-      if (diff < 10)   return 'just now';
-      if (diff < 60)   return diff + ' sec ago';
-      if (diff < 3600) return Math.floor(diff/60) + ' min ago';
-      return Math.floor(diff/3600) + 'h ago';
-    } catch(e) { return 'just now'; }
+      if (diff < 10)    return 'just now';
+      if (diff < 60)    return diff + 's ago';
+      if (diff < 3600)  return Math.floor(diff/60) + ' min ago';
+      if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+      return Math.floor(diff/86400) + 'd ago';
+    } catch(e) { return ''; }
   }
 
   // ── Admin password (change this to your preferred password) ──────────────
@@ -860,10 +860,11 @@ details[open] .du-more-summary::before{content:'▾ '}
     var ts = document.getElementById('tsText');
     if (ts) {
       var timeStr = data.generatedAt || '';
-      var rel     = timeStr ? relativeTime(timeStr) : 'just now';
+      var rel     = timeStr ? relativeTime(timeStr) : '';
+      var relPart = rel ? ' <span style="color:#94A3B8">· ' + rel + '</span>' : '';
       ts.innerHTML = data.fromCache
-        ? '<span style="color:#0176D3;font-weight:600">🕐 ' + timeStr + '</span> &nbsp;·&nbsp; ' + rel
-        : '<span style="color:#15803D;font-weight:600">✦ ' + timeStr + '</span> &nbsp;·&nbsp; just now';
+        ? '🕐 ' + timeStr + relPart
+        : '✦ ' + timeStr + relPart;
     }
 
     var cl = document.getElementById('cacheLabel');
