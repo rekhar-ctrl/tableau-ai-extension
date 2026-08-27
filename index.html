@@ -406,12 +406,13 @@ details[open] .du-more-summary::before{content:'▾ '}
         This tool uses Claude AI to automatically read your Tableau dashboard data and generate an executive-ready summary — no manual analysis needed.<br><br>Below are the technologies powering it:
       </p>
       <div class="tech-block">
-        <div class="tech-item"><div class="tech-icon" style="background:#E0F2FE;color:#0176D3">⚙️</div><div><div class="tech-name">Google Apps Script</div><div class="tech-desc">Backend — Tableau auth, Claude API calls, caching, Google Docs export</div></div></div>
+        <div class="tech-item"><div class="tech-icon" style="background:#FFF7ED;color:#F6821F">☁️</div><div><div class="tech-name">Cloudflare Workers</div><div class="tech-desc">Backend — Tableau auth, Claude API calls, KV caching, edge performance with near-zero cold starts</div></div></div>
+        <div class="tech-item"><div class="tech-icon" style="background:#EDE9FE;color:#7C3AED">🗄️</div><div><div class="tech-name">Cloudflare KV</div><div class="tech-desc">Distributed cache — stores AI summaries for 12 hours, served globally from the nearest edge node</div></div></div>
         <div class="tech-item"><div class="tech-icon" style="background:#FEF3C7;color:#D97706">📊</div><div><div class="tech-name">Tableau REST API v3.21</div><div class="tech-desc">Fetches dashboard screenshot and CSV data for AI analysis</div></div></div>
         <div class="tech-item"><div class="tech-icon" style="background:#F0FDF4;color:#15803D">🤖</div><div><div class="tech-name">Anthropic Claude AI</div><div class="tech-desc">claude-sonnet-4-6 vision model — reads dashboard image + CSV to generate executive briefings</div></div></div>
-        <div class="tech-item"><div class="tech-icon" style="background:#E0F2FE;color:#0176D3">🌐</div><div><div class="tech-name">GitHub Pages</div><div class="tech-desc">Hosts the extension UI — required for Tableau's iframe security model</div></div></div>
+        <div class="tech-item"><div class="tech-icon" style="background:#E0F2FE;color:#0176D3">🌐</div><div><div class="tech-name">Cloudflare Pages</div><div class="tech-desc">Hosts the extension UI — auto-deploys from GitHub on every commit</div></div></div>
         <div class="tech-item"><div class="tech-icon" style="background:#FFF7ED;color:#C2410C">📋</div><div><div class="tech-name">Tableau Extensions API v1.12</div><div class="tech-desc">Auto-detects dashboard, listens for filter + parameter changes</div></div></div>
-        <div class="tech-item"><div class="tech-icon" style="background:#E0F2FE;color:#0176D3">📄</div><div><div class="tech-name">Google Docs</div><div class="tech-desc">One-click export of AI summaries as formatted, shareable documents</div></div></div>
+        <div class="tech-item"><div class="tech-icon" style="background:#E8F5E9;color:#2E7D32">📄</div><div><div class="tech-name">Google Apps Script</div><div class="tech-desc">Google Docs export only — one-click export of AI summaries as formatted, shareable documents</div></div></div>
       </div>
     </div>
   </div>
@@ -979,7 +980,16 @@ details[open] .du-more-summary::before{content:'▾ '}
   function fetchAdminStats() {
     fetch(WORKER_URL + '?action=getStats', { redirect: 'follow' })
       .then(function(r) { return r.json(); })
-      .then(function(s) { renderAdminPanel(s); })
+      .then(function(s) {
+        var total = (s.totalCalls || 0) + (s.totalCacheHits || 0);
+        if (total === 0) {
+          document.getElementById('adminBody').innerHTML =
+            '<div class="admin-loading" style="color:#64748B;padding:20px;text-align:center">' +
+            '📊 No stats yet — run your first analysis to start tracking usage.</div>';
+          return;
+        }
+        renderAdminPanel(s);
+      })
       .catch(function(e) {
         document.getElementById('adminBody').innerHTML =
           '<div class="admin-loading" style="color:#d64545">Failed to load stats: ' + e.message + '</div>';
@@ -1026,7 +1036,14 @@ details[open] .du-more-summary::before{content:'▾ '}
     var savingsPercent = totalCost > 0 ? Math.round(totalSaved / (totalCost + totalSaved) * 100) : 0;
 
     // Dashboard rows — top 5 visible, rest hidden under toggle
-    var allDashboards = s.dashboards || [];
+    // s.dashboards is an object { name: { calls, cacheHits, cost } } — convert to array
+    var dashObj = s.dashboards || {};
+    var allDashboards = Object.keys(dashObj).map(function(name) {
+      var d = dashObj[name];
+      var clicks   = (d.calls || 0) + (d.cacheHits || 0);
+      var hitRate  = clicks > 0 ? Math.round((d.cacheHits || 0) / clicks * 100) : 0;
+      return { name: name, clicks: clicks, hitRate: hitRate, cost: d.cost || 0 };
+    }).sort(function(a, b) { return b.clicks - a.clicks; });
     var TOP = 5;
 
     function makeDashRow(d, i) {
@@ -1185,7 +1202,7 @@ details[open] .du-more-summary::before{content:'▾ '}
           '<p>⏱ <strong>Est. Time Saved (' + timeSaved + ')</strong> — each AI analysis replaces ~15 min of manual dashboard review. ' + totalClicks + ' clicks × 15 min = ' + minsSaved + ' min total.</p>' +
           '<p>💰 <strong>Cost per Fresh Click (' + fmt(avgCost) + ')</strong> — actual Anthropic API charge per summary, based on token usage. Averaged across all ' + (s.totalCalls || 0) + ' fresh analyses.</p>' +
           '<p>⚡ <strong>Cost per Cached Click ($0.0000)</strong> — same dashboard + filter within 12h returns stored result instantly at zero cost.</p>' +
-          '<p>💡 <strong>Costs shown are Anthropic API charges only.</strong> Tableau Server, GitHub Pages and Google Apps Script run on existing licenses or free tiers.</p>' +
+          '<p>💡 <strong>Costs shown are Anthropic API charges only.</strong> Tableau Server, Cloudflare Workers, Cloudflare Pages, and Google Apps Script (export only) run on existing licenses or free tiers.</p>' +
         '</div>' +
       '</details>' +
 
@@ -1196,7 +1213,11 @@ details[open] .du-more-summary::before{content:'▾ '}
 
   function clearAdminStats() {
     if (!confirm('Reset all analytics data? This cannot be undone.')) return;
-    fetch(WORKER_URL + '?action=clearStats', { redirect: 'follow' })
+    fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'clearStats', password: ADMIN_PASSWORD })
+    })
       .then(function() { fetchAdminStats(); })
       .catch(function() {});
   }
