@@ -997,51 +997,25 @@ details[open] .du-more-summary::before{content:'▾ '}
   }
 
   function renderAdminPanel(s) {
-    var totalClicks = s.totalClicks    || ((s.totalCalls || 0) + (s.totalCacheHits || 0));
+    var totalClicks = (s.totalCalls || 0) + (s.totalCacheHits || 0);
     var hitRate     = s.cacheHitRate   || 0;
     var totalCost   = s.totalCost      || 0;
-    var totalSaved  = s.totalSaved     || 0;
-    var avgCost     = s.avgCostPerCall || 0;
-    var minsSaved   = s.totalMinsSaved || (totalClicks * 15);
+    var avgCost     = totalClicks > 0 ? totalCost / (s.totalCalls || 1) : 0;
+    var minsSaved   = totalClicks * 15;
     var hrsSaved    = Math.floor(minsSaved / 60);
     var remMins     = minsSaved % 60;
     var timeSaved   = hrsSaved > 0 ? hrsSaved + 'h ' + remMins + 'm' : minsSaved + ' min';
+    var uniqueCount = s.totalUniqueUsers || (Array.isArray(s.uniqueUsers) ? s.uniqueUsers.length : 0);
 
     var fmt    = function(n) { return n < 0.0001 ? '<$0.0001' : '$' + n.toFixed(4); };
     var fmtPct = function(n) { return n + '%'; };
 
-    // Per-dashboard rows are built below with top 5 + toggle
-
-    // ── Monthly rows (last 3 months) ──
-    var monthKeys = Object.keys(s.monthly || {}).sort().slice(-3).reverse();
-    var monthRows = monthKeys.map(function(m) {
-      var mo       = s.monthly[m];
-      var calls    = mo.calls     || 0;
-      var hits     = mo.cacheHits || 0;
-      var clicks   = calls + hits;
-      var rate     = clicks > 0 ? Math.round(hits / clicks * 100) : 0;
-      var barColor = rate >= 60 ? '#22c55e' : rate >= 30 ? '#f59e0b' : '#ef4444';
-      return '<div class="du-row">' +
-        '<div class="du-name" style="font-weight:600">' + m + '</div>' +
-        '<div class="du-clicks"><span class="du-badge">' + clicks + '</span></div>' +
-        '<div class="du-bar-wrap">' +
-          '<div class="du-bar" style="width:' + rate + '%;background:' + barColor + '"></div>' +
-          '<span class="du-bar-label">' + rate + '%</span>' +
-        '</div>' +
-        '<div class="du-cost">' + fmt(mo.cost || 0) + '</div>' +
-      '</div>';
-    }).join('') || '<div style="text-align:center;color:#94a3b8;padding:12px;font-size:.75rem">No monthly data yet</div>';
-
-    // ── Redesigned admin panel — stats top, tables middle, notes bottom ──
-    var savingsPercent = totalCost > 0 ? Math.round(totalSaved / (totalCost + totalSaved) * 100) : 0;
-
-    // Dashboard rows — top 5 visible, rest hidden under toggle
-    // s.dashboards is an object { name: { calls, cacheHits, cost } } — convert to array
+    // Convert dashboards object to sorted array
     var dashObj = s.dashboards || {};
     var allDashboards = Object.keys(dashObj).map(function(name) {
       var d = dashObj[name];
-      var clicks   = (d.calls || 0) + (d.cacheHits || 0);
-      var hitRate  = clicks > 0 ? Math.round((d.cacheHits || 0) / clicks * 100) : 0;
+      var clicks  = (d.calls || 0) + (d.cacheHits || 0);
+      var hitRate = clicks > 0 ? Math.round((d.cacheHits || 0) / clicks * 100) : 0;
       return { name: name, clicks: clicks, hitRate: hitRate, cost: d.cost || 0 };
     }).sort(function(a, b) { return b.clicks - a.clicks; });
     var TOP = 5;
@@ -1061,31 +1035,29 @@ details[open] .du-more-summary::before{content:'▾ '}
       '</div>';
     }
 
-    var topRows      = allDashboards.slice(0, TOP).map(makeDashRow).join('');
+    var topRows       = allDashboards.slice(0, TOP).map(makeDashRow).join('');
     var remainingRows = allDashboards.slice(TOP).map(function(d, i) { return makeDashRow(d, i + TOP); }).join('');
-    var hiddenCount  = allDashboards.length - TOP;
+    var hiddenCount   = allDashboards.length - TOP;
 
-    var dashRowsNew = topRows ||
+    var dashRowsHtml = topRows ||
       '<div style="text-align:center;color:#94a3b8;padding:16px;font-size:.75rem">No dashboard data yet — click Analyze on any dashboard</div>';
 
-    // Add collapsible section for remaining dashboards
     if (hiddenCount > 0) {
-      dashRowsNew +=
+      dashRowsHtml +=
         '<details class="du-more">' +
-          '<summary class="du-more-summary">' +
-            '▸ Show ' + hiddenCount + ' more dashboard' + (hiddenCount > 1 ? 's' : '') +
-          '</summary>' +
+          '<summary class="du-more-summary">▸ Show ' + hiddenCount + ' more dashboard' + (hiddenCount > 1 ? 's' : '') + '</summary>' +
           '<div class="du-more-body">' + remainingRows + '</div>' +
         '</details>';
     }
 
-    // Monthly rows
-    var monthRowsNew = monthKeys.map(function(m) {
+    // Monthly rows (last 3 months)
+    var monthKeys = Object.keys(s.monthly || {}).sort().slice(-3).reverse();
+    var monthRowsHtml = monthKeys.map(function(m) {
       var mo = s.monthly[m];
-      var calls = mo.calls || 0;
-      var hits  = mo.cacheHits || 0;
+      var calls  = mo.calls || 0;
+      var hits   = mo.cacheHits || 0;
       var clicks = calls + hits;
-      var rate = clicks > 0 ? Math.round(hits / clicks * 100) : 0;
+      var rate   = clicks > 0 ? Math.round(hits / clicks * 100) : 0;
       var barColor = rate >= 60 ? '#22c55e' : rate >= 30 ? '#f59e0b' : '#ef4444';
       return '<div class="du-row">' +
         '<div class="du-name" style="font-weight:600">' + m + '</div>' +
@@ -1099,110 +1071,59 @@ details[open] .du-more-summary::before{content:'▾ '}
     }).join('') || '<div style="text-align:center;color:#94a3b8;padding:16px;font-size:.75rem">No monthly data yet</div>';
 
     var html =
-
-      // ═══ HERO BANNER — top summary ═══
+      // HERO BANNER
       '<div class="adm-hero">' +
-        '<div class="adm-hero-item">' +
-          '<div class="adm-hero-val">' + totalClicks + '</div>' +
-          '<div class="adm-hero-lbl">Total Clicks</div>' +
-        '</div>' +
+        '<div class="adm-hero-item"><div class="adm-hero-val">' + totalClicks + '</div><div class="adm-hero-lbl">Total Clicks</div></div>' +
         '<div class="adm-hero-div"></div>' +
-        '<div class="adm-hero-item">' +
-          '<div class="adm-hero-val">' + (s.totalUniqueUsers || (Array.isArray(s.uniqueUsers) ? s.uniqueUsers.length : 0)) + '</div>' +
-          '<div class="adm-hero-lbl">Unique Users</div>' +
-        '</div>' +
+        '<div class="adm-hero-item"><div class="adm-hero-val">' + uniqueCount + '</div><div class="adm-hero-lbl">Unique Users</div></div>' +
         '<div class="adm-hero-div"></div>' +
-        '<div class="adm-hero-item">' +
-          '<div class="adm-hero-val">' + fmt(totalCost) + '</div>' +
-          '<div class="adm-hero-lbl">API Spend</div>' +
-        '</div>' +
+        '<div class="adm-hero-item"><div class="adm-hero-val">' + fmt(totalCost) + '</div><div class="adm-hero-lbl">API Spend</div></div>' +
         '<div class="adm-hero-div"></div>' +
-        '<div class="adm-hero-item">' +
-          '<div class="adm-hero-val">' + timeSaved + '</div>' +
-          '<div class="adm-hero-lbl">Time Saved</div>' +
-        '</div>' +
+        '<div class="adm-hero-item"><div class="adm-hero-val">' + timeSaved + '</div><div class="adm-hero-lbl">Time Saved</div></div>' +
         '<div class="adm-hero-div"></div>' +
-        '<div class="adm-hero-item">' +
-          '<div class="adm-hero-val">' + fmtPct(hitRate) + '</div>' +
-          '<div class="adm-hero-lbl">Cache Rate</div>' +
-        '</div>' +
+        '<div class="adm-hero-item"><div class="adm-hero-val">' + fmtPct(hitRate) + '</div><div class="adm-hero-lbl">Cache Rate</div></div>' +
       '</div>' +
 
-      // ═══ COST BREAKDOWN CARDS ═══
+      // COST CARDS
       '<div class="adm-cost-row">' +
-        '<div class="adm-cost-card adm-cost-amber">' +
-          '<div class="adm-cost-icon">🔥</div>' +
-          '<div class="adm-cost-info">' +
-            '<div class="adm-cost-val">' + fmt(avgCost) + '</div>' +
-            '<div class="adm-cost-lbl">Cost / Fresh Click</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="adm-cost-card adm-cost-green">' +
-          '<div class="adm-cost-icon">♻️</div>' +
-          '<div class="adm-cost-info">' +
-            '<div class="adm-cost-val">$0.0000</div>' +
-            '<div class="adm-cost-lbl">Cost / Cached Click</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="adm-cost-card adm-cost-blue">' +
-          '<div class="adm-cost-icon">🎯</div>' +
-          '<div class="adm-cost-info">' +
-            '<div class="adm-cost-val">' + fmt(totalSaved) + '</div>' +
-            '<div class="adm-cost-lbl">Saved by Cache</div>' +
-          '</div>' +
-        '</div>' +
+        '<div class="adm-cost-card adm-cost-amber"><div class="adm-cost-icon">🔥</div><div class="adm-cost-info"><div class="adm-cost-val">' + fmt(avgCost) + '</div><div class="adm-cost-lbl">Cost / Fresh Click</div></div></div>' +
+        '<div class="adm-cost-card adm-cost-green"><div class="adm-cost-icon">♻️</div><div class="adm-cost-info"><div class="adm-cost-val">$0.0000</div><div class="adm-cost-lbl">Cost / Cached Click</div></div></div>' +
+        '<div class="adm-cost-card adm-cost-blue"><div class="adm-cost-icon">🎯</div><div class="adm-cost-info"><div class="adm-cost-val">' + fmt((s.totalCacheHits || 0) * avgCost) + '</div><div class="adm-cost-lbl">Saved by Cache</div></div></div>' +
       '</div>' +
 
-      // ═══ DASHBOARD USAGE ═══
+      // DASHBOARD USAGE
       '<div class="adm-section">' +
-        '<div class="adm-section-hdr">' +
-          '<span class="adm-section-icon">📊</span> Dashboard Usage' +
-          '<span class="adm-section-sub">' + allDashboards.length + ' dashboards</span>' +
-        '</div>' +
-        '<div class="du-header">' +
-          '<div class="du-rank"></div>' +
-          '<div class="du-name du-th">Dashboard</div>' +
-          '<div class="du-clicks du-th">Clicks</div>' +
-          '<div class="du-bar-wrap du-th">Cache Hit Rate</div>' +
-          '<div class="du-cost du-th">Cost</div>' +
-        '</div>' +
-        dashRowsNew +
+        '<div class="adm-section-hdr"><span class="adm-section-icon">📊</span> Dashboard Usage<span class="adm-section-sub">' + allDashboards.length + ' dashboards</span></div>' +
+        '<div class="du-header"><div class="du-rank"></div><div class="du-name du-th">Dashboard</div><div class="du-clicks du-th">Clicks</div><div class="du-bar-wrap du-th">Cache Hit Rate</div><div class="du-cost du-th">Cost</div></div>' +
+        dashRowsHtml +
       '</div>' +
 
-      // ═══ MONTHLY BREAKDOWN ═══
+      // MONTHLY TREND
       '<div class="adm-section">' +
-        '<div class="adm-section-hdr">' +
-          '<span class="adm-section-icon">📅</span> Monthly Trend' +
-          '<span class="adm-section-sub">Last ' + monthKeys.length + ' months</span>' +
-        '</div>' +
-        '<div class="du-header">' +
-          '<div class="du-name du-th">Month</div>' +
-          '<div class="du-clicks du-th">Clicks</div>' +
-          '<div class="du-bar-wrap du-th">Cache Hit Rate</div>' +
-          '<div class="du-cost du-th">Cost</div>' +
-        '</div>' +
-        monthRowsNew +
+        '<div class="adm-section-hdr"><span class="adm-section-icon">📅</span> Monthly Trend<span class="adm-section-sub">Last ' + monthKeys.length + ' months</span></div>' +
+        '<div class="du-header"><div class="du-name du-th">Month</div><div class="du-clicks du-th">Clicks</div><div class="du-bar-wrap du-th">Cache Hit Rate</div><div class="du-cost du-th">Cost</div></div>' +
+        monthRowsHtml +
       '</div>' +
 
-      // ═══ CONFIGURATION ═══
+      // CONFIGURATION
       '<div class="adm-section">' +
         '<div class="adm-section-hdr"><span class="adm-section-icon">⚙️</span> Configuration</div>' +
         '<div class="adm-config-grid">' +
-          '<div class="adm-cfg-item"><div class="adm-cfg-key">AI Model</div><div class="adm-cfg-val">' + (s.config && s.config.model || 'claude-sonnet-4-6') + '</div></div>' +
-          '<div class="adm-cfg-item"><div class="adm-cfg-key">Cache TTL</div><div class="adm-cfg-val">' + ((s.config && s.config.summaryTtlHours) || 12) + ' hours</div></div>' +
-          '<div class="adm-cfg-item"><div class="adm-cfg-key">Last Analysis</div><div class="adm-cfg-val">' + (s.lastCall ? s.lastCall.slice(0,16).replace('T',' ') + ' UTC' : '—') + '</div></div>' +
-          '<div class="adm-cfg-item"><div class="adm-cfg-key">Last Dashboard</div><div class="adm-cfg-val">' + (s.lastView || '—') + '</div></div>' +
+          '<div class="adm-cfg-item"><div class="adm-cfg-key">AI Model</div><div class="adm-cfg-val">claude-sonnet-4-6</div></div>' +
+          '<div class="adm-cfg-item"><div class="adm-cfg-key">Cache TTL</div><div class="adm-cfg-val">12 hours</div></div>' +
+          '<div class="adm-cfg-item"><div class="adm-cfg-key">Backend</div><div class="adm-cfg-val">Cloudflare Workers + KV</div></div>' +
+          '<div class="adm-cfg-item"><div class="adm-cfg-key">Fresh Analyses</div><div class="adm-cfg-val">' + (s.totalCalls || 0) + '</div></div>' +
         '</div>' +
       '</div>' +
 
-      // ═══ NOTES — bottom ═══
+      // NOTES
       '<details class="adm-notes">' +
         '<summary class="adm-notes-summary">ℹ️ How these numbers are calculated</summary>' +
         '<div class="adm-notes-body">' +
           '<p>⏱ <strong>Est. Time Saved (' + timeSaved + ')</strong> — each AI analysis replaces ~15 min of manual dashboard review. ' + totalClicks + ' clicks × 15 min = ' + minsSaved + ' min total.</p>' +
           '<p>💰 <strong>Cost per Fresh Click (' + fmt(avgCost) + ')</strong> — actual Anthropic API charge per summary, based on token usage. Averaged across all ' + (s.totalCalls || 0) + ' fresh analyses.</p>' +
           '<p>⚡ <strong>Cost per Cached Click ($0.0000)</strong> — same dashboard + filter within 12h returns stored result instantly at zero cost.</p>' +
-          '<p>💡 <strong>Costs shown are Anthropic API charges only.</strong> Tableau Server, Cloudflare Workers, Cloudflare Pages, and Google Apps Script (export only) run on existing licenses or free tiers.</p>' +
+          '<p>💡 <strong>Costs shown are Anthropic API charges only.</strong> Cloudflare Workers, Cloudflare Pages, and Google Apps Script (export only) run on existing licenses or free tiers.</p>' +
         '</div>' +
       '</details>' +
 
@@ -1210,7 +1131,6 @@ details[open] .du-more-summary::before{content:'▾ '}
 
     document.getElementById('adminBody').innerHTML = html;
   }
-
   function clearAdminStats() {
     if (!confirm('Reset all analytics data? This cannot be undone.')) return;
     fetch(WORKER_URL, {
