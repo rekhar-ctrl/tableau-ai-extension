@@ -916,14 +916,19 @@ details[open] .du-more-summary::before{content:'▾ '}
       var bodyLines = lines.slice(1).filter(function(l) { return l.trim(); });
       if (!name || !bodyLines.length) return '';
 
-      // Render bullet lines as <ul><li>, plain lines as <p>
-      var hasBullets = bodyLines.some(function(l) { return l.trim().match(/^[-•*]/); });
+      // FIX: Skip charts with no data
+      var allText = bodyLines.join(' ').toLowerCase();
+      if (allText.match(/no data available/i) && bodyLines.length <= 1) return '';
+
+      // FIX: Only match single-char bullets (- or •), not ** bold markers
+      var hasBullets = bodyLines.some(function(l) { return l.trim().match(/^[-•]/); });
       var html;
       if (hasBullets) {
         html = '<ul style="margin:4px 0 0 14px;padding:0">' +
           bodyLines.map(function(l) {
-            var text = l.trim().replace(/^[-•*]\s*/, '').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-            return l.trim().match(/^[-•*]/)
+            // FIX: Only strip leading - or • not *
+            var text = l.trim().replace(/^[-•]\s*/, '').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            return l.trim().match(/^[-•]/)
               ? '<li style="margin-bottom:3px">' + text + '</li>'
               : '<p style="margin:3px 0">' + text + '</p>';
           }).join('') + '</ul>';
@@ -935,7 +940,7 @@ details[open] .du-more-summary::before{content:'▾ '}
         '<div class="pc-name">' + name + '</div>' +
         '<div class="pc-trend">' + html + '</div>' +
         '</div>';
-    }).join('');
+    }).filter(Boolean).join('');
   }
 
   // ── REQ 4: Admin panel ────────────────────────────────────────
