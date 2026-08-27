@@ -863,7 +863,14 @@ details[open] .du-more-summary::before{content:'▾ '}
 
     var ts = document.getElementById('tsText');
     if (ts) {
-      var timeStr = data.generatedAt || '';
+      var rawTime = data.cachedAt || data.generatedAt || "";
+      var timeStr = "";
+      if (rawTime) {
+        var d = new Date(rawTime);
+        var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        timeStr = d.getDate() + " " + months[d.getMonth()] + " " + d.getFullYear() + ", " +
+          String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+      }
       var rel     = timeStr ? relativeTime(timeStr) : '';
       ts.innerHTML =
         '<span style="color:#64748B;font-size:.64rem">🕐 ' + timeStr + (rel ? ' &nbsp;·&nbsp; ' + rel : '') + '</span>';
@@ -886,7 +893,7 @@ details[open] .du-more-summary::before{content:'▾ '}
     // Use processed markdown so export has renumbered sections + per-chart summaries
     var exportMd = mainMd;
     if (split.perChart) exportMd += '\n\n' + split.perChart;
-    exportData = { summary: exportMd, generatedAt: data.generatedAt || '' };
+    exportData = { summary: exportMd, generatedAt: data.cachedAt || data.generatedAt || '' };
     setStatus('success', 'Analysis complete ✓');
 
     document.querySelectorAll('.tab') .forEach(function(t,i){ t.classList.toggle('on',i===0); });
