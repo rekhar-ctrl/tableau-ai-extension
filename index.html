@@ -1108,7 +1108,7 @@ details[open] .du-more-summary::before{content:'▾ '}
         '</div>' +
         '<div class="adm-hero-div"></div>' +
         '<div class="adm-hero-item">' +
-          '<div class="adm-hero-val">' + (s.uniqueUsers || 0) + '</div>' +
+          '<div class="adm-hero-val">' + (s.totalUniqueUsers || (Array.isArray(s.uniqueUsers) ? s.uniqueUsers.length : 0)) + '</div>' +
           '<div class="adm-hero-lbl">Unique Users</div>' +
         '</div>' +
         '<div class="adm-hero-div"></div>' +
@@ -1157,7 +1157,7 @@ details[open] .du-more-summary::before{content:'▾ '}
       '<div class="adm-section">' +
         '<div class="adm-section-hdr">' +
           '<span class="adm-section-icon">📊</span> Dashboard Usage' +
-          '<span class="adm-section-sub">' + (s.dashboards || []).length + ' dashboards</span>' +
+          '<span class="adm-section-sub">' + allDashboards.length + ' dashboards</span>' +
         '</div>' +
         '<div class="du-header">' +
           '<div class="du-rank"></div>' +
