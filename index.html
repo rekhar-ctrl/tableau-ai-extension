@@ -913,11 +913,27 @@ details[open] .du-more-summary::before{content:'▾ '}
     return items.map(function(item) {
       var lines = item.trim().split('\n');
       var name  = lines[0].trim();
-      var trend = lines.slice(1).join(' ').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').trim();
-      if (!name || !trend) return '';
+      var bodyLines = lines.slice(1).filter(function(l) { return l.trim(); });
+      if (!name || !bodyLines.length) return '';
+
+      // Render bullet lines as <ul><li>, plain lines as <p>
+      var hasBullets = bodyLines.some(function(l) { return l.trim().match(/^[-•*]/); });
+      var html;
+      if (hasBullets) {
+        html = '<ul style="margin:4px 0 0 14px;padding:0">' +
+          bodyLines.map(function(l) {
+            var text = l.trim().replace(/^[-•*]\s*/, '').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            return l.trim().match(/^[-•*]/)
+              ? '<li style="margin-bottom:3px">' + text + '</li>'
+              : '<p style="margin:3px 0">' + text + '</p>';
+          }).join('') + '</ul>';
+      } else {
+        html = '<p>' + bodyLines.join(' ').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') + '</p>';
+      }
+
       return '<div class="pc-item">' +
         '<div class="pc-name">' + name + '</div>' +
-        '<div class="pc-trend">' + trend + '</div>' +
+        '<div class="pc-trend">' + html + '</div>' +
         '</div>';
     }).join('');
   }
