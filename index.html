@@ -413,6 +413,8 @@ details[open] .du-more-summary::before{content:'▾ '}
         <div class="tech-item"><div class="tech-icon" style="background:#E0F2FE;color:#0176D3">🌐</div><div><div class="tech-name">Cloudflare Pages</div><div class="tech-desc">Hosts the extension UI — auto-deploys from GitHub on every commit</div></div></div>
         <div class="tech-item"><div class="tech-icon" style="background:#FFF7ED;color:#C2410C">📋</div><div><div class="tech-name">Tableau Extensions API v1.12</div><div class="tech-desc">Auto-detects dashboard, listens for filter + parameter changes</div></div></div>
         <div class="tech-item"><div class="tech-icon" style="background:#E8F5E9;color:#2E7D32">📄</div><div><div class="tech-name">Google Apps Script</div><div class="tech-desc">Google Docs export only — one-click export of AI summaries as formatted, shareable documents</div></div></div>
+        <div class="tech-item"><div class="tech-icon" style="background:#F1F5F9;color:#24292F">🐙</div><div><div class="tech-name">GitHub</div><div class="tech-desc">Source code repository — Cloudflare Pages auto-deploys on every push to main branch</div></div></div>
+        <div class="tech-item"><div class="tech-icon" style="background:#FFF1F2;color:#BE123C">🔑</div><div><div class="tech-name">Cloudflare Secrets Store</div><div class="tech-desc">Encrypted storage for API keys (Anthropic, Tableau PAT) — never exposed in code or logs</div></div></div>
       </div>
     </div>
   </div>
@@ -1007,7 +1009,7 @@ details[open] .du-more-summary::before{content:'▾ '}
     var timeSaved   = hrsSaved > 0 ? hrsSaved + 'h ' + remMins + 'm' : minsSaved + ' min';
     var uniqueCount = s.totalUniqueUsers || (Array.isArray(s.uniqueUsers) ? s.uniqueUsers.length : 0);
 
-    var fmt    = function(n) { return n < 0.0001 ? '<$0.0001' : '$' + n.toFixed(4); };
+    var fmt    = function(n) { return n === 0 ? '$0.0000' : n < 0.0001 ? '$' + n.toFixed(6) : '$' + n.toFixed(4); };
     var fmtPct = function(n) { return n + '%'; };
 
     // Convert dashboards object to sorted array
