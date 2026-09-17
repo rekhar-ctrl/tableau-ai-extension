@@ -1,0 +1,208 @@
+import requests
+import json
+import pandas as pd
+from datetime import datetime
+
+# ── Configuration ──────────────────────────────
+TABLEAU_URL = "https://10az.online.tableau.com"
+TOKEN_NAME = "YOUR_TOKEN_NAME"
+TOKEN_SECRET = "YOUR_TOKEN_SECRET"
+SITE_NAME = "YOUR_SITE_NAME"  # from URL: /#/site/SITENAME/home
+API_VERSION = "3.21"
+
+# ── Step 1: Sign In ────────────────────────────
+def signin():
+    url = f"{TABLEAU_URL}/api/{API_VERSION}/auth/signin"
+    payload = {
+        "credentials": {
+            "personalAccessTokenName": TOKEN_NAME,
+            "personalAccessTokenSecret": TOKEN_SECRET,
+            "site": {
+                "contentUrl": SITE_NAME
+            }
+        }
+    }
+    response = requests.post(url, json=payload)
+    data = response.json()
+    token = data['credentials']['token']
+    site_id = data['credentials']['site']['id']
+    print("✅ Signed in successfully")
+    return token, site_id
+
+# ── Step 2: Get Datasources ────────────────────
+def get_unused_datasources(token):
+    url = f"{TABLEAU_URL}/api/metadata/graphql"
+    
+    query = """
+    {
+      publishedDatasourcesConnection {
+        nodes {
+          name
+          projectName
+          owner {
+            name
+          }
+          downstreamWorkbooks {
+            name
+          }
+        }
+      }
+    }
+    """
+    
+    headers = {
+        "x-tableau-auth": token,
+        "Content-Type": "application/json"
+    }
+    
+    response = requests.post(url, json={"query": query}, headers=headers)
+    data = response.json()
+    
+    datasources = data['data']['publishedDatasourcesConnection']['nodes']
+    
+    unused = []
+    used = []
+    
+    for ds in datasources:
+        if len(ds['downstreamWorkbooks']) == 0:
+            unused.append(ds)
+        else:
+            used.append(ds)
+    
+    return unused, used
+
+# ── Step 3: Export to Excel ────────────────────
+def export_to_excel(unused, used):
+    today = datetime.today().strftime('%Y-%m-%d')
+    filename = f"tableau_datasource_report_{today}.xlsx"
+    
+    # ── Unused Datasources Sheet ───────────────
+    unused_rows = []
+    for ds in unused:
+        owner = ds['owner']['name'] if ds['owner'] else 'Unknown'
+        unused_rows.append({
+            "Datasource Name": ds['name'],
+            "Project": ds['projectName'],
+            "Owner": owner,
+            "Status": "❌ Unused",
+            "Connected Workbooks": "None",
+            "Workbook Count": 0
+        })
+    
+    # ── Used Datasources Sheet ─────────────────
+    used_rows = []
+    for ds in used:
+        owner = ds['owner']['name'] if ds['owner'] else 'Unknown'
+        workbooks = [w['name'] for w in ds['downstreamWorkbooks']]
+        used_rows.append({
+            "Datasource Name": ds['name'],
+            "Project": ds['projectName'],
+            "Owner": owner,
+            "Status": "✅ In Use",
+            "Connected Workbooks": ", ".join(workbooks),
+            "Workbook Count": len(workbooks)
+        })
+
+    # ── Summary Sheet ──────────────────────────
+    summary_rows = [
+        {"Metric": "Total Datasources", "Count": len(unused) + len(used)},
+        {"Metric": "Used Datasources", "Count": len(used)},
+        {"Metric": "Unused Datasources", "Count": len(unused)},
+        {"Metric": "Report Generated On", "Count": today}
+    ]
+
+    df_unused = pd.DataFrame(unused_rows)
+    df_used = pd.DataFrame(used_rows)
+    df_all = pd.DataFrame(unused_rows + used_rows)
+    df_summary = pd.DataFrame(summary_rows)
+
+    # ── Write to Excel with multiple sheets ────
+    with pd.ExcelWriter(filename, engine='openpyxl') as writer:
+        # Summary sheet
+        df_summary.to_excel(writer, sheet_name='Summary', index=False)
+        
+        # All datasources sheet
+        df_all.to_excel(writer, sheet_name='All Datasources', index=False)
+        
+        # Unused only sheet
+        df_unused.to_excel(writer, sheet_name='Unused Datasources', index=False)
+        
+        # Used only sheet
+        df_used.to_excel(writer, sheet_name='Used Datasources', index=False)
+
+        # ── Auto format column widths ──────────
+        for sheet_name in writer.sheets:
+            worksheet = writer.sheets[sheet_name]
+            for col in worksheet.columns:
+                max_length = 0
+                col_letter = col[0].column_letter
+                for cell in col:
+                    try:
+                        if cell.value:
+                            max_length = max(max_length, len(str(cell.value)))
+                    except:
+                        pass
+                worksheet.column_dimensions[col_letter].width = min(max_length + 5, 50)
+
+    print(f"\n📁 Excel report saved as: {filename}")
+    return filename
+
+# ── Step 4: Export to CSV ──────────────────────
+def export_to_csv(unused, used):
+    today = datetime.today().strftime('%Y-%m-%d')
+    
+    all_rows = []
+    for ds in unused:
+        owner = ds['owner']['name'] if ds['owner'] else 'Unknown'
+        all_rows.append({
+            "Datasource Name": ds['name'],
+            "Project": ds['projectName'],
+            "Owner": owner,
+            "Status": "Unused",
+            "Connected Workbooks": "None",
+            "Workbook Count": 0
+        })
+    for ds in used:
+        owner = ds['owner']['name'] if ds['owner'] else 'Unknown'
+        workbooks = [w['name'] for w in ds['downstreamWorkbooks']]
+        all_rows.append({
+            "Datasource Name": ds['name'],
+            "Project": ds['projectName'],
+            "Owner": owner,
+            "Status": "In Use",
+            "Connected Workbooks": ", ".join(workbooks),
+            "Workbook Count": len(workbooks)
+        })
+    
+    df = pd.DataFrame(all_rows)
+    csv_filename = f"tableau_datasource_report_{today}.csv"
+    df.to_csv(csv_filename, index=False)
+    print(f"📁 CSV report saved as: {csv_filename}")
+    return csv_filename
+
+# ── Step 5: Print Summary ──────────────────────
+def print_summary(unused, used):
+    print("\n" + "="*60)
+    print(f"✅ USED DATASOURCES: {len(used)}")
+    print("="*60)
+    for ds in used:
+        workbooks = [w['name'] for w in ds['downstreamWorkbooks']]
+        print(f"  📊 {ds['name']} ({ds['projectName']})")
+        print(f"     Used in: {', '.join(workbooks)}")
+
+    print("\n" + "="*60)
+    print(f"❌ UNUSED DATASOURCES: {len(unused)}")
+    print("="*60)
+    for ds in unused:
+        owner = ds['owner']['name'] if ds['owner'] else 'Unknown'
+        print(f"  🗑️  {ds['name']} ({ds['projectName']}) - Owner: {owner}")
+
+# ── Main ───────────────────────────────────────
+if __name__ == "__main__":
+    token, site_id = signin()
+    unused, used = get_unused_datasources(token)
+    print_summary(unused, used)
+    export_to_excel(unused, used)
+    export_to_csv(unused, used)
+    
+    print("\n✅ Done! Check your folder for the Excel and CSV files.")
