@@ -5,9 +5,9 @@ from datetime import datetime
 
 # ── Configuration ──────────────────────────────
 TABLEAU_URL = "https://10az.online.tableau.com"
-TOKEN_NAME = "YOUR_TOKEN_NAME"
-TOKEN_SECRET = "YOUR_TOKEN_SECRET"
-SITE_NAME = "YOUR_SITE_NAME"  # from URL: /#/site/SITENAME/home
+TOKEN_NAME = "AI_Q2"
+TOKEN_SECRET = "hhh"
+SITE_NAME = "birdeye"  # from URL: /#/site/SITENAME/home
 API_VERSION = "3.21"
 
 # ── Step 1: Sign In ────────────────────────────
