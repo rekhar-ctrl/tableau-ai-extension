@@ -1,14 +1,24 @@
 import requests
-import json
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # ── Configuration ──────────────────────────────
 TABLEAU_URL = "https://10az.online.tableau.com"
 TOKEN_NAME = "AI_Q2"
-TOKEN_SECRET = "hhh"
-SITE_NAME = "birdeye"  # from URL: /#/site/SITENAME/home
+TOKEN_SECRET = "mYZOGlt6RRCer0JqnyTMnQ==:ZzHfb9eOQEFtf3JubNBXbDufu24FHLGb"
+SITE_NAME = "birdeye"
 API_VERSION = "3.21"
+STALE_DAYS = 7
+
+# ── PROD Folder Names ──────────────────────────
+PROD_FOLDERS = [
+    "Customer Success",
+    "Sales",
+    "Marketing",
+    "Finance",
+    "Collections",
+    "Product"
+]
 
 # ── Step 1: Sign In ────────────────────────────
 def signin():
@@ -17,97 +27,368 @@ def signin():
         "credentials": {
             "personalAccessTokenName": TOKEN_NAME,
             "personalAccessTokenSecret": TOKEN_SECRET,
-            "site": {
-                "contentUrl": SITE_NAME
-            }
+            "site": {"contentUrl": SITE_NAME}
         }
     }
-    response = requests.post(url, json=payload)
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+    response = requests.post(url, json=payload, headers=headers)
+    print("Status Code:", response.status_code)
     data = response.json()
     token = data['credentials']['token']
     site_id = data['credentials']['site']['id']
     print("✅ Signed in successfully")
     return token, site_id
 
-# ── Step 2: Get Datasources ────────────────────
-def get_unused_datasources(token):
-    url = f"{TABLEAU_URL}/api/metadata/graphql"
-    
-    query = """
-    {
-      publishedDatasourcesConnection {
-        nodes {
-          name
-          projectName
-          owner {
-            name
-          }
-          downstreamWorkbooks {
-            name
-          }
-        }
-      }
-    }
-    """
-    
-    headers = {
+# ── Helper: Determine Environment ─────────────
+def get_environment(has_prod, has_non_prod):
+    if has_prod and has_non_prod:
+        return "🟢🔵 PROD & Non-PROD"
+    elif has_prod:
+        return "🟢 PROD"
+    elif has_non_prod:
+        return "🔵 Non-PROD"
+    else:
+        return "⚠️ Unknown"
+
+# ── Step 2: Build Reverse Map from Workbooks ───
+def build_datasource_workbook_map(token):
+    graphql_url = f"{TABLEAU_URL}/api/metadata/graphql"
+    graphql_headers = {
         "x-tableau-auth": token,
         "Content-Type": "application/json"
     }
-    
-    response = requests.post(url, json={"query": query}, headers=headers)
-    data = response.json()
-    
-    datasources = data['data']['publishedDatasourcesConnection']['nodes']
-    
+
+    all_workbooks = []
+    cursor = None
+
+    print("\n⏳ Fetching workbooks and their upstream datasources...")
+
+    while True:
+        if cursor:
+            query = """
+            {
+              workbooksConnection(first: 100, after: "%s") {
+                totalCount
+                pageInfo { hasNextPage endCursor }
+                nodes {
+                  name
+                  projectName
+                  upstreamDatasources {
+                    name
+                    projectName
+                  }
+                }
+              }
+            }
+            """ % cursor
+        else:
+            query = """
+            {
+              workbooksConnection(first: 100) {
+                totalCount
+                pageInfo { hasNextPage endCursor }
+                nodes {
+                  name
+                  projectName
+                  upstreamDatasources {
+                    name
+                    projectName
+                  }
+                }
+              }
+            }
+            """
+
+        response = requests.post(graphql_url, json={"query": query}, headers=graphql_headers)
+        data = response.json()
+        connection = data['data']['workbooksConnection']
+        nodes = connection['nodes']
+        all_workbooks.extend(nodes)
+
+        total = connection['totalCount']
+        has_next = connection['pageInfo']['hasNextPage']
+        cursor = connection['pageInfo']['endCursor']
+
+        print(f"  ⏳ Fetched {len(all_workbooks)} / {total} workbooks...")
+
+        if not has_next:
+            break
+
+    print(f"✅ Total workbooks fetched: {len(all_workbooks)}")
+
+    # Build reverse map: datasource name -> list of connected workbooks
+    ds_workbook_map = {}
+
+    for wb in all_workbooks:
+        wb_name = wb.get('name')
+        wb_project = wb.get('projectName')
+
+        if not wb_name:
+            continue
+
+        for ds in wb.get('upstreamDatasources', []):
+            ds_name = ds.get('name')
+
+            if not ds_name:
+                continue
+
+            key = ds_name
+
+            if key not in ds_workbook_map:
+                ds_workbook_map[key] = []
+
+            wb_entry = {'name': wb_name, 'projectName': wb_project}
+            if wb_entry not in ds_workbook_map[key]:
+                ds_workbook_map[key].append(wb_entry)
+
+    print(f"✅ Datasource workbook map built for {len(ds_workbook_map)} datasources")
+    return ds_workbook_map
+
+# ── Step 3: Get Used/Unused Datasources ────────
+def get_unused_datasources(token, ds_workbook_map):
+    graphql_url = f"{TABLEAU_URL}/api/metadata/graphql"
+    graphql_headers = {
+        "x-tableau-auth": token,
+        "Content-Type": "application/json"
+    }
+
+    all_datasources = []
+    cursor = None
+
+    print("\n⏳ Fetching datasources from GraphQL...")
+
+    while True:
+        if cursor:
+            query = """
+            {
+              publishedDatasourcesConnection(first: 100, after: "%s") {
+                totalCount
+                pageInfo { hasNextPage endCursor }
+                nodes {
+                  name
+                  projectName
+                  luid
+                  owner { name }
+                }
+              }
+            }
+            """ % cursor
+        else:
+            query = """
+            {
+              publishedDatasourcesConnection(first: 100) {
+                totalCount
+                pageInfo { hasNextPage endCursor }
+                nodes {
+                  name
+                  projectName
+                  luid
+                  owner { name }
+                }
+              }
+            }
+            """
+
+        response = requests.post(graphql_url, json={"query": query}, headers=graphql_headers)
+        data = response.json()
+        connection = data['data']['publishedDatasourcesConnection']
+        nodes = connection['nodes']
+        all_datasources.extend(nodes)
+
+        total = connection['totalCount']
+        has_next = connection['pageInfo']['hasNextPage']
+        cursor = connection['pageInfo']['endCursor']
+
+        print(f"  ⏳ Fetched {len(all_datasources)} / {total} datasources...")
+
+        if not has_next:
+            break
+
+    print(f"✅ Total datasources fetched: {len(all_datasources)}")
+
     unused = []
     used = []
-    
-    for ds in datasources:
-        if len(ds['downstreamWorkbooks']) == 0:
+
+    for ds in all_datasources:
+        name = ds['name']
+
+        workbooks = ds_workbook_map.get(name, [])
+        workbook_count = len(workbooks)
+
+        prod_workbooks = [w for w in workbooks if w['projectName'] in PROD_FOLDERS]
+        non_prod_workbooks = [w for w in workbooks if w['projectName'] not in PROD_FOLDERS]
+
+        has_prod = len(prod_workbooks) > 0
+        has_non_prod = len(non_prod_workbooks) > 0
+
+        ds['workbooks'] = workbooks
+        ds['workbookCount'] = workbook_count
+        ds['prodWorkbooks'] = prod_workbooks
+        ds['nonProdWorkbooks'] = non_prod_workbooks
+        ds['hasProd'] = has_prod
+        ds['hasNonProd'] = has_non_prod
+        ds['environment'] = get_environment(has_prod, has_non_prod)
+
+        if workbook_count == 0:
             unused.append(ds)
         else:
             used.append(ds)
-    
+
     return unused, used
 
-# ── Step 3: Export to Excel ────────────────────
-def export_to_excel(unused, used):
-    today = datetime.today().strftime('%Y-%m-%d')
+# ── Step 4: Get Refresh Status ─────────────────
+def get_refresh_status(token, site_id, ds_workbook_map):
+
+    url = f"{TABLEAU_URL}/api/{API_VERSION}/sites/{site_id}/datasources"
+    headers = {
+        "x-tableau-auth": token,
+        "Accept": "application/json"
+    }
+    params = {"pageSize": 1000}
+    response = requests.get(url, headers=headers, params=params)
+    data = response.json()
+    datasources = data['datasources']['datasource']
+
+    today = datetime.today().date()
+    yesterday = today - timedelta(days=1)
+    stale_threshold = today - timedelta(days=STALE_DAYS)
+
+    refreshed_today = []
+    not_refreshed_today = []
+    stale_or_suspended = []
+    no_refresh_info = []
+    unused_but_refreshing = []  # ← New list
+
+    for ds in datasources:
+        name = ds.get('name', 'Unknown')
+        project = ds.get('project', {}).get('name', 'Unknown')
+        owner = ds.get('owner', {}).get('name', 'Unknown')
+        updated_at = ds.get('updatedAt', None)
+        is_suspended = ds.get('isSuspended', False)
+        has_extract = ds.get('hasExtracts', False)
+
+        # Get workbooks from reverse map
+        workbooks = ds_workbook_map.get(name, [])
+        is_unused = len(workbooks) == 0
+        prod_workbooks = [w for w in workbooks if w['projectName'] in PROD_FOLDERS]
+        non_prod_workbooks = [w for w in workbooks if w['projectName'] not in PROD_FOLDERS]
+        has_prod = len(prod_workbooks) > 0
+        has_non_prod = len(non_prod_workbooks) > 0
+
+        environment = get_environment(has_prod, has_non_prod) if not is_unused else "❌ Not Connected"
+        prod_wb_str = ", ".join([f"{w['name']} ({w['projectName']})" for w in prod_workbooks]) if prod_workbooks else "None"
+        non_prod_wb_str = ", ".join([f"{w['name']} ({w['projectName']})" for w in non_prod_workbooks]) if non_prod_workbooks else "None"
+        all_wb_str = ", ".join([f"{w['name']} ({w['projectName']})" for w in workbooks]) if workbooks else "None"
+
+        if updated_at is None:
+            no_refresh_info.append({
+                "Datasource Name": name,
+                "Project": project,
+                "Owner": owner,
+                "Last Refreshed": "Never / No Info",
+                "Days Since Refresh": "N/A",
+                "Suspended": "Yes" if is_suspended else "No",
+                "Environment": environment,
+                "Connected Workbooks": all_wb_str,
+                "Prod Workbooks": prod_wb_str,
+                "Non-Prod Workbooks": non_prod_wb_str,
+                "Status": "⚠️ No Refresh Info"
+            })
+        else:
+            last_refresh_date = datetime.strptime(updated_at[:10], '%Y-%m-%d').date()
+            days_since_refresh = (today - last_refresh_date).days
+
+            row = {
+                "Datasource Name": name,
+                "Project": project,
+                "Owner": owner,
+                "Last Refreshed": updated_at[:10],
+                "Days Since Refresh": days_since_refresh,
+                "Suspended": "Yes" if is_suspended else "No",
+                "Environment": environment,
+                "Connected Workbooks": all_wb_str,
+                "Prod Workbooks": prod_wb_str,
+                "Non-Prod Workbooks": non_prod_wb_str,
+            }
+
+            # ── New: Unused but refreshing daily ──
+            if is_unused and last_refresh_date >= yesterday:
+                row["Status"] = "⚠️ Unused but Refreshing Daily"
+                unused_but_refreshing.append(row)
+
+            elif is_suspended or last_refresh_date <= stale_threshold:
+                row["Status"] = "🔴 Suspended" if is_suspended else f"⚠️ Stale (Not refreshed in {days_since_refresh} days)"
+                stale_or_suspended.append(row)
+            elif last_refresh_date == today:
+                row["Status"] = "✅ Refreshed Today"
+                refreshed_today.append(row)
+            else:
+                row["Status"] = f"🟡 Refreshed {days_since_refresh} days ago"
+                not_refreshed_today.append(row)
+
+    return refreshed_today, not_refreshed_today, stale_or_suspended, no_refresh_info, unused_but_refreshing
+
+# ── Step 5: Export to Excel ────────────────────
+def export_to_excel(unused, used, refreshed_today, not_refreshed_today, stale_or_suspended, no_refresh_info, unused_but_refreshing):
+    today = datetime.today().strftime('%Y-%m-%d_%H-%M-%S')
     filename = f"tableau_datasource_report_{today}.xlsx"
-    
-    # ── Unused Datasources Sheet ───────────────
+
+    # Unused rows
     unused_rows = []
     for ds in unused:
         owner = ds['owner']['name'] if ds['owner'] else 'Unknown'
         unused_rows.append({
             "Datasource Name": ds['name'],
-            "Project": ds['projectName'],
+            "Datasource Project": ds['projectName'],
             "Owner": owner,
             "Status": "❌ Unused",
             "Connected Workbooks": "None",
-            "Workbook Count": 0
+            "Workbook Count": 0,
+            "Prod Workbooks": "None",
+            "Non-Prod Workbooks": "None",
+            "Environment": "N/A"
         })
-    
-    # ── Used Datasources Sheet ─────────────────
+
+    # Used rows
     used_rows = []
     for ds in used:
         owner = ds['owner']['name'] if ds['owner'] else 'Unknown'
-        workbooks = [w['name'] for w in ds['downstreamWorkbooks']]
+        all_workbook_names = [f"{w['name']} ({w['projectName']})" for w in ds['workbooks']]
+        prod_workbook_names = [f"{w['name']} ({w['projectName']})" for w in ds['prodWorkbooks']]
+        non_prod_workbook_names = [f"{w['name']} ({w['projectName']})" for w in ds['nonProdWorkbooks']]
+
         used_rows.append({
             "Datasource Name": ds['name'],
-            "Project": ds['projectName'],
+            "Datasource Project": ds['projectName'],
             "Owner": owner,
             "Status": "✅ In Use",
-            "Connected Workbooks": ", ".join(workbooks),
-            "Workbook Count": len(workbooks)
+            "Connected Workbooks": ", ".join(all_workbook_names),
+            "Workbook Count": ds['workbookCount'],
+            "Prod Workbooks": ", ".join(prod_workbook_names) if prod_workbook_names else "None",
+            "Non-Prod Workbooks": ", ".join(non_prod_workbook_names) if non_prod_workbook_names else "None",
+            "Environment": ds['environment']
         })
 
-    # ── Summary Sheet ──────────────────────────
+    # Summary rows
+    prod_only_count = sum(1 for ds in used if ds['environment'] == "🟢 PROD")
+    non_prod_only_count = sum(1 for ds in used if ds['environment'] == "🔵 Non-PROD")
+    both_count = sum(1 for ds in used if ds['environment'] == "🟢🔵 PROD & Non-PROD")
+
     summary_rows = [
         {"Metric": "Total Datasources", "Count": len(unused) + len(used)},
         {"Metric": "Used Datasources", "Count": len(used)},
         {"Metric": "Unused Datasources", "Count": len(unused)},
+        {"Metric": "PROD Only Datasources", "Count": prod_only_count},
+        {"Metric": "Non-PROD Only Datasources", "Count": non_prod_only_count},
+        {"Metric": "PROD & Non-PROD Datasources", "Count": both_count},
+        {"Metric": "Refreshed Today", "Count": len(refreshed_today)},
+        {"Metric": "Refreshed Within 7 Days", "Count": len(not_refreshed_today)},
+        {"Metric": "Stale or Suspended (7+ days)", "Count": len(stale_or_suspended)},
+        {"Metric": "Unused but Refreshing Daily", "Count": len(unused_but_refreshing)},
+        {"Metric": "No Refresh Info", "Count": len(no_refresh_info)},
         {"Metric": "Report Generated On", "Count": today}
     ]
 
@@ -115,22 +396,31 @@ def export_to_excel(unused, used):
     df_used = pd.DataFrame(used_rows)
     df_all = pd.DataFrame(unused_rows + used_rows)
     df_summary = pd.DataFrame(summary_rows)
+    df_refreshed = pd.DataFrame(refreshed_today)
+    df_not_refreshed = pd.DataFrame(not_refreshed_today)
+    df_stale = pd.DataFrame(stale_or_suspended)
+    df_no_refresh = pd.DataFrame(no_refresh_info)
+    df_unused_refreshing = pd.DataFrame(unused_but_refreshing)
 
-    # ── Write to Excel with multiple sheets ────
+    # PROD/Non-PROD split
+    prod_rows = [r for r in used_rows if r['Environment'] in ("🟢 PROD", "🟢🔵 PROD & Non-PROD")]
+    non_prod_rows = [r for r in used_rows if r['Environment'] in ("🔵 Non-PROD", "🟢🔵 PROD & Non-PROD")]
+    df_prod = pd.DataFrame(prod_rows)
+    df_non_prod = pd.DataFrame(non_prod_rows)
+
     with pd.ExcelWriter(filename, engine='openpyxl') as writer:
-        # Summary sheet
         df_summary.to_excel(writer, sheet_name='Summary', index=False)
-        
-        # All datasources sheet
         df_all.to_excel(writer, sheet_name='All Datasources', index=False)
-        
-        # Unused only sheet
+        df_prod.to_excel(writer, sheet_name='PROD Datasources', index=False)
+        df_non_prod.to_excel(writer, sheet_name='Non-PROD Datasources', index=False)
         df_unused.to_excel(writer, sheet_name='Unused Datasources', index=False)
-        
-        # Used only sheet
-        df_used.to_excel(writer, sheet_name='Used Datasources', index=False)
+        df_unused_refreshing.to_excel(writer, sheet_name='Unused But Refreshing', index=False)
+        df_stale.to_excel(writer, sheet_name='Stale or Suspended', index=False)
+        df_not_refreshed.to_excel(writer, sheet_name='Refreshed Within 7 Days', index=False)
+        df_refreshed.to_excel(writer, sheet_name='Refreshed Today', index=False)
+        df_no_refresh.to_excel(writer, sheet_name='No Refresh Info', index=False)
 
-        # ── Auto format column widths ──────────
+        # Auto format column widths
         for sheet_name in writer.sheets:
             worksheet = writer.sheets[sheet_name]
             for col in worksheet.columns:
@@ -147,48 +437,62 @@ def export_to_excel(unused, used):
     print(f"\n📁 Excel report saved as: {filename}")
     return filename
 
-# ── Step 4: Export to CSV ──────────────────────
-def export_to_csv(unused, used):
-    today = datetime.today().strftime('%Y-%m-%d')
-    
+# ── Step 6: Export to CSV ──────────────────────
+def export_to_csv(unused, used, refreshed_today, not_refreshed_today, stale_or_suspended, no_refresh_info, unused_but_refreshing):
+    today = datetime.today().strftime('%Y-%m-%d_%H-%M-%S')
+
     all_rows = []
     for ds in unused:
         owner = ds['owner']['name'] if ds['owner'] else 'Unknown'
         all_rows.append({
             "Datasource Name": ds['name'],
-            "Project": ds['projectName'],
+            "Datasource Project": ds['projectName'],
             "Owner": owner,
             "Status": "Unused",
             "Connected Workbooks": "None",
-            "Workbook Count": 0
+            "Workbook Count": 0,
+            "Prod Workbooks": "None",
+            "Non-Prod Workbooks": "None",
+            "Environment": "N/A"
         })
     for ds in used:
         owner = ds['owner']['name'] if ds['owner'] else 'Unknown'
-        workbooks = [w['name'] for w in ds['downstreamWorkbooks']]
+        all_workbook_names = [f"{w['name']} ({w['projectName']})" for w in ds['workbooks']]
+        prod_workbook_names = [f"{w['name']} ({w['projectName']})" for w in ds['prodWorkbooks']]
+        non_prod_workbook_names = [f"{w['name']} ({w['projectName']})" for w in ds['nonProdWorkbooks']]
         all_rows.append({
             "Datasource Name": ds['name'],
-            "Project": ds['projectName'],
+            "Datasource Project": ds['projectName'],
             "Owner": owner,
             "Status": "In Use",
-            "Connected Workbooks": ", ".join(workbooks),
-            "Workbook Count": len(workbooks)
+            "Connected Workbooks": ", ".join(all_workbook_names),
+            "Workbook Count": ds['workbookCount'],
+            "Prod Workbooks": ", ".join(prod_workbook_names) if prod_workbook_names else "None",
+            "Non-Prod Workbooks": ", ".join(non_prod_workbook_names) if non_prod_workbook_names else "None",
+            "Environment": ds['environment']
         })
-    
+
     df = pd.DataFrame(all_rows)
     csv_filename = f"tableau_datasource_report_{today}.csv"
     df.to_csv(csv_filename, index=False)
     print(f"📁 CSV report saved as: {csv_filename}")
-    return csv_filename
 
-# ── Step 5: Print Summary ──────────────────────
+    # Refresh CSV
+    refresh_rows = refreshed_today + not_refreshed_today + stale_or_suspended + no_refresh_info + unused_but_refreshing
+    df_refresh = pd.DataFrame(refresh_rows)
+    refresh_csv = f"tableau_refresh_report_{today}.csv"
+    df_refresh.to_csv(refresh_csv, index=False)
+    print(f"📁 Refresh CSV report saved as: {refresh_csv}")
+
+# ── Step 7: Print Summary ──────────────────────
 def print_summary(unused, used):
     print("\n" + "="*60)
     print(f"✅ USED DATASOURCES: {len(used)}")
     print("="*60)
     for ds in used:
-        workbooks = [w['name'] for w in ds['downstreamWorkbooks']]
-        print(f"  📊 {ds['name']} ({ds['projectName']})")
-        print(f"     Used in: {', '.join(workbooks)}")
+        workbooks = [f"{w['name']} ({w['projectName']})" for w in ds['workbooks']]
+        print(f"  📊 {ds['name']} ({ds['projectName']}) — {ds['environment']}")
+        print(f"     Workbooks: {', '.join(workbooks)}")
 
     print("\n" + "="*60)
     print(f"❌ UNUSED DATASOURCES: {len(unused)}")
@@ -200,9 +504,28 @@ def print_summary(unused, used):
 # ── Main ───────────────────────────────────────
 if __name__ == "__main__":
     token, site_id = signin()
-    unused, used = get_unused_datasources(token)
+
+    # Build reverse map
+    ds_workbook_map = build_datasource_workbook_map(token)
+
+    # Used/Unused datasources
+    unused, used = get_unused_datasources(token, ds_workbook_map)
     print_summary(unused, used)
-    export_to_excel(unused, used)
-    export_to_csv(unused, used)
-    
+
+    # Refresh status
+    print("\n⏳ Checking refresh status...")
+    refreshed_today, not_refreshed_today, stale_or_suspended, no_refresh_info, unused_but_refreshing = get_refresh_status(token, site_id, ds_workbook_map)
+
+    print("\n" + "="*60)
+    print(f"✅ REFRESHED TODAY: {len(refreshed_today)}")
+    print(f"🟡 REFRESHED WITHIN 7 DAYS: {len(not_refreshed_today)}")
+    print(f"🔴 STALE OR SUSPENDED (7+ days): {len(stale_or_suspended)}")
+    print(f"⚠️  UNUSED BUT REFRESHING DAILY: {len(unused_but_refreshing)}")
+    print(f"⚠️  NO REFRESH INFO: {len(no_refresh_info)}")
+    print("="*60)
+
+    # Export
+    export_to_excel(unused, used, refreshed_today, not_refreshed_today, stale_or_suspended, no_refresh_info, unused_but_refreshing)
+    export_to_csv(unused, used, refreshed_today, not_refreshed_today, stale_or_suspended, no_refresh_info, unused_but_refreshing)
+
     print("\n✅ Done! Check your folder for the Excel and CSV files.")
